@@ -15,7 +15,7 @@
 
 #ifdef DEBUG_PACKETS
 //#define DEBUGF(...) do { printf(__VA_ARGS__); } while (0)
-#define DEBUGF(...) do { CHAR_DEVICE *duart_a = mcGetDevice(0); fctprintf(mcSendDevice, duart_a, __VA_ARGS__); } while (0)
+#define DEBUGF(...) do { CharDevice duart_a; if (mcGetDevice(0, &duart_a)) { fctprintf(mcSendDevice, &duart_a, __VA_ARGS__); }} while (0)
 #else
 #define DEBUGF(...)
 #endif
@@ -25,19 +25,6 @@
 #define USB_MSG_DISCONNECT  0x02
 #define USB_MSG_ERROR       0x03
 #define USB_MSG_REPORT      0x04
-
-typedef struct {
-    uint32_t    data;
-    uint32_t    checkptr;
-    uint32_t    recvptr;
-    uint32_t    sendptr;
-    uint32_t    reserved0;
-    uint32_t    reserved1;
-    uint32_t    reserved2;
-    uint16_t    capabilities;
-    uint8_t     flags;
-    uint8_t     device_type;
-} __attribute__((packed)) CHAR_DEVICE;
 
 typedef enum {
     STATE_DISCARD,
@@ -86,7 +73,7 @@ typedef struct {
 
 } __attribute__((packed)) FinalPacket;
 
-extern void install_interrupt(CHAR_DEVICE *device);
+extern void install_interrupt(CharDevice *device);
 extern void remove_interrupt();
 extern uint16_t unbuffer(unsigned char *buffer);
 
@@ -117,21 +104,24 @@ int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 
 void process_strikes(uint8_t* new_keys) {
 
-    CHAR_DEVICE *duart_a = mcGetDevice(0);
+    //CHAR_DEVICE *duart_a = mcGetDevice(0);
+    CharDevice duart_a;
+    if (mcGetDevice(0, &duart_a)) {
 
-    for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
+        for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
 
-        if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, duart_a, "%c", keys_upper[new_keys[i]]);
+            if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
 
-        // if (!strchr(new_keys,last_ingest[i])) { // OLD STRCHR CODE
-           
-        //     if (last_ingest[0] == 0x20) fctprintf(mcSendDevice, duart_a, "%c", keys_upper[new_keys[i]]);
-        //     else fctprintf(mcSendDevice, duart_a, "%c", keys_lower[new_keys[i]]);
+            // if (!strchr(new_keys,last_ingest[i])) { // OLD STRCHR CODE
+            
+            //     if (last_ingest[0] == 0x20) fctprintf(mcSendDevice, duart_a, "%c", keys_upper[new_keys[i]]);
+            //     else fctprintf(mcSendDevice, duart_a, "%c", keys_lower[new_keys[i]]);
 
-        // }
+            // }
+
+        }
 
     }
-
     memcpy(last_ingest, new_keys, 8);
 
 }
@@ -188,13 +178,13 @@ void process_final_packet(FinalPacket *p) {
             printf("Vendor ID 0x%02x, Product ID 0x%02x connected\n", USB_DEVICE[p->endpoint].vendor_id, USB_DEVICE[p->endpoint].product_id);        
         }
 
-        else if (p->messsage_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
+        else if (p->message_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
 
-        else if (p->messsage_type == USB_MSG_REPORT) {
+        else if (p->message_type == USB_MSG_REPORT) {
 
-            if ((p->packet_data[8] == 0x14) && (p->packet_data[9] == 0x72)) {
-                process_gamepad(&(p->packet_data[0]));
-            } else process_strikes(&(p->packet_data[0]));
+            if ((p->id_product_lo == 0x14) && (p->id_product_hi == 0x72)) {
+                process_gamepad(&(p->payload[0]));
+            } else process_strikes(&(p->payload[0]));
 
         }
 
@@ -300,25 +290,28 @@ void process_incoming(State *state) {
     static uint8_t buffer[1024];
 #ifdef DEBUG_PACKETS
 #ifdef DEBUG_VERBOSE
-    CHAR_DEVICE *duart_a = mcGetDevice(0);
-#endif
-#endif
+    //CHAR_DEVICE *duart_a = mcGetDevice(0);
+    CharDevice duart_a;
+    if (mcGetDevice(0, &duart_a)) {
+    #endif
+    #endif
 
-    uint16_t count = unbuffer(buffer);      //Pull the ring buffer
-    if (count == 0) return;
+        uint16_t count = unbuffer(buffer);      //Pull the ring buffer
+        if (count == 0) return;
 
-#ifdef DEBUG_PACKETS
-#ifdef DEBUG_VERBOSE
-    for (int i = 0; i < count; i++) {
-        fctprintf(mcSendDevice, duart_a, "0x%02x ", buffer[i]);
+    #ifdef DEBUG_PACKETS
+    #ifdef DEBUG_VERBOSE
+        for (int i = 0; i < count; i++) {
+            fctprintf(mcSendDevice, &duart_a, "0x%02x ", buffer[i]);
+        }
+        fctprintf(mcSendDevice, &duart_a, "\r\n\r\n");
     }
-    fctprintf(mcSendDevice, duart_a, "\r\n\r\n");
-#endif
-#endif
+    #endif
+    #endif
 
-    for (int i = 0; i < count; i++) {
-        process_data(buffer[i], state);
-    }
+        for (int i = 0; i < count; i++) {
+            process_data(buffer[i], state);
+        }
 }
 
 void kmain() {
@@ -331,23 +324,27 @@ void kmain() {
         printf("Found %d device(s)\n", count);
 
         for (int i = 0; i < count; i++) {
-            CHAR_DEVICE *dev = mcGetDevice(i);
+            //CHAR_DEVICE *dev = mcGetDevice(i);
+            CharDevice dev;
+            if (mcGetDevice(i, &dev)) {
 
-            printf("data    : 0x%08lx\n", dev->data);
-            printf("checkptr: 0x%08lx\n", dev->checkptr);
-            printf("recvptr : 0x%08lx\n", dev->recvptr);
-            printf("sendptr : 0x%08lx\n", dev->sendptr);
+            printf("data    : 0x%08lx\n", dev.data);
+            printf("checkptr: 0x%08lx\n", dev.checkptr);
+            printf("recvptr : 0x%08lx\n", dev.recvptr);
+            printf("sendptr : 0x%08lx\n", dev.sendptr);
 
             // printf("Printing to device %d\n", i);
             // fctprintf(mcSendDevice, dev, "Hello, World\n"); 
             printf("\n\n");
+            }
         }
 
         printf("Done\n");
 
-        CHAR_DEVICE *duart_b = mcGetDevice(1);
+        //CHAR_DEVICE *duart_b = mcGetDevice(1);
+        CharDevice duart_b;
 
-        install_interrupt(duart_b);
+        install_interrupt(&duart_b);
 
         printf("Interrupt handler installed\n");
 //         //mcDisableInterrupts();
@@ -366,8 +363,10 @@ void kmain() {
         //fctprintf(mcSendDevice, duart_b, "AT+CIPRECVMODE=1\r\n");
         //printf("Going to telnet prompt\n");
 
-        CHAR_DEVICE *duart_a = mcGetDevice(0);
-        fctprintf(mcSendDevice, duart_a, "\f");
+        //CHAR_DEVICE *duart_a = mcGetDevice(0);
+        CharDevice duart_a;
+        if (mcGetDevice(0, &duart_a)) {
+        fctprintf(mcSendDevice, &duart_a, "\f");
 
         State state;
         state.state = STATE_DISCARD;
@@ -375,8 +374,9 @@ void kmain() {
         while (true) {            
             process_incoming(&state);
 #ifdef DEBUG_HEARTBEAT        
-            fctprintf(mcSendDevice, duart_a, "*");
+            fctprintf(mcSendDevice, &duart_a, "*");
 #endif        
+        }
         }
     } else {
         printf("No character device support detected\n");
