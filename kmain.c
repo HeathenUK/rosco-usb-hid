@@ -44,15 +44,17 @@ typedef enum {
     STATE_AWAIT_SIG_1,
     STATE_AWAIT_LEN_HI,
     STATE_AWAIT_LEN_LO,
-    STATE_FILL,
+    STATE_FILL_DATA,
     STATE_CHECK_FILLED
 } STATE;
 
 typedef struct {
     STATE   state;
-    uint8_t packet[1024];           // I don't know how big this needs to be - size of biggest packet
+    uint8_t meta[12];
+    uint8_t packet[2048];           // I don't know how big this needs to be - size of biggest packet
+    uint8_t meta_ptr;
     uint16_t packet_ptr;            // If packet array gets bigger, this needs more bits too...
-    uint16_t remain_len;            // Fill length remaining (only valid in STATE_FILL)
+    uint16_t remain_len;            // Fill length remaining (only valid in STATE_FILL_DATA)
 } State;
 
 extern void install_interrupt(CHAR_DEVICE *device);
@@ -175,6 +177,7 @@ void process_data(uint8_t data, State *state) {
             // valid - length is next
             DEBUGF("(STATE_AWAIT_SIG_1      -> STATE_AWAIT_LEN_HI [0x%02x]\r\n\r\n", data);
             state->state = STATE_AWAIT_LEN_HI;
+            state->meta_ptr = 0;
             state->packet_ptr = 0;
         } else {
             // invalid - back to discard
@@ -188,23 +191,42 @@ void process_data(uint8_t data, State *state) {
         DEBUGF("(STATE_AWAIT_LEN_HI     -> STATE_AWAIT_LEN_LO [0x%02x]\r\n\r\n", data);
         state->remain_len = data;
         state->state = STATE_AWAIT_LEN_LO;
-        state->packet[state->packet_ptr++] = data;
+        state->meta[state->meta_ptr++] = data;
+        //state->packet[state->packet_ptr++] = data;
         break;
 
     case STATE_AWAIT_LEN_LO:
-        DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL [0x%02x]\r\n\r\n", data);
+        DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_META [0x%02x]\r\n\r\n", data);
         state->remain_len |= data << 8;
         state->remain_len += 8;
-        state->state = STATE_FILL;
-        state->packet[state->packet_ptr++] = data;
+        state->state = STATE_FILL_META;
+        state->meta[state->meta_ptr++] = data;
+        //state->packet[state->packet_ptr++] = data;
         break;
 
-    case STATE_FILL:
+    case STATE_FILL_META:
+        state->meta[state->meta_ptr++] = data;
+
+        if (state->meta_ptr == 9) {
+            // All data transferred, expect a "\n" to close the communication.
+            DEBUGF("(STATE_FILL_META         -> STATE_FILL_DATA (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
+            state->state = STATE_FILL_DATA;
+            
+        } 
+#ifdef DEBUG_PACKETS
+        else {
+            DEBUGF("                        #  META FILL [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
+        }
+#endif
+
+        break;
+
+    case STATE_FILL_DATA:
         state->packet[state->packet_ptr++] = data;
 
         if (--state->remain_len == 0) {
             // All data transferred, expect a "\n" to close the communication.
-            DEBUGF("(STATE_FILL             -> STATE_DISCARD (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
+            DEBUGF("(STATE_FILL_DATA         -> STATE_DISCARD (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
             state->state = STATE_CHECK_FILLED;
             
         } 
