@@ -50,9 +50,9 @@ typedef enum {
 
 typedef struct {
     STATE   state;
-    uint8_t meta[12];
-    uint8_t packet[2048];           // I don't know how big this needs to be - size of biggest packet
     uint8_t meta_ptr;
+    uint8_t meta[10];
+    uint8_t packet[2048];           // I don't know how big this needs to be - size of biggest packet
     uint16_t packet_ptr;            // If packet array gets bigger, this needs more bits too...
     uint16_t remain_len;            // Fill length remaining (only valid in STATE_FILL_DATA)
 } State;
