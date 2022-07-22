@@ -53,12 +53,15 @@ typedef enum {
     GAMEPAD
 } DEV_TYPE;
 
-typedef struct {
 
-    uint8_t     endpoint;
+struct {
+
+    bool        connected;
+    uint16_t    vendor_id;
+    uint16_t    product_id;
     DEV_TYPE    dev_type;
 
-} USB_DEVICE;
+} USB_DEVICE[2];
 
 typedef struct {
     STATE   state;
@@ -165,7 +168,14 @@ void process_gamepad(uint8_t* new_pad) {
 
 void process_final_packet(FinalPacket *p) {
 
-        if (p->messsage_type == USB_MSG_CONNECT) printf("Device connected\n");
+        if (p->messsage_type == USB_MSG_CONNECT) {
+        
+            USB_DEVICE[p->endpoint].connected = true;
+            USB_DEVICE[p->endpoint].vendor_id = p.vendor_id;
+            USB_DEVICE[p->endpoint].product_id = p.product_id;
+            printf("Vendor ID 0x%02x, Product ID 0x%02x connected\n", USB_DEVICE[p->endpoint].vendor_id, USB_DEVICE[p->endpoint].product_id);
+        
+        }
         
         else if (p->messsage_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
 
