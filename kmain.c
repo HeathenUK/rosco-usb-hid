@@ -72,15 +72,19 @@ typedef struct {
 
 typedef struct {
 
-    uint8_t     endpoint;
+    uint8_t     length_lo;
+    uint8_t     length_hi;
     uint8_t     message_type;
-    uint8_t     hid_type;
-    uint16_t    data_length;
-    uint16_t    vendor_id;
-    uint16_t    product_id;
-    uint8_t     packet_data[2048];
+    uint8_t     type;
+    uint8_t     device;
+    uint8_t     endpoint;
+    uint8_t     id_vendor_lo;
+    uint8_t     id_vendor_hi;
+    uint8_t     id_product_lo;
+    uint8_t     id_product_hi;
+    uint8_t     payload[2038];
 
-} FinalPacket
+} __attribute__((packed)) FinalPacket;
 
 extern void install_interrupt(CHAR_DEVICE *device);
 extern void remove_interrupt();
@@ -168,15 +172,22 @@ void process_gamepad(uint8_t* new_pad) {
 
 void process_final_packet(FinalPacket *p) {
 
-        if (p->messsage_type == USB_MSG_CONNECT) {
+        // if (p->messsage_type == USB_MSG_CONNECT) {
         
+        //     USB_DEVICE[p->endpoint].connected = true;
+        //     USB_DEVICE[p->endpoint].vendor_id = p.vendor_id;
+        //     USB_DEVICE[p->endpoint].product_id = p.product_id;
+        //     printf("Vendor ID 0x%02x, Product ID 0x%02x connected\n", USB_DEVICE[p->endpoint].vendor_id, USB_DEVICE[p->endpoint].product_id);
+        
+        // }
+        
+        if (p->message_type == USB_MSG_CONNECT) {        
             USB_DEVICE[p->endpoint].connected = true;
-            USB_DEVICE[p->endpoint].vendor_id = p.vendor_id;
-            USB_DEVICE[p->endpoint].product_id = p.product_id;
-            printf("Vendor ID 0x%02x, Product ID 0x%02x connected\n", USB_DEVICE[p->endpoint].vendor_id, USB_DEVICE[p->endpoint].product_id);
-        
+            USB_DEVICE[p->endpoint].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+            USB_DEVICE[p->endpoint].product_id = p->id_product_lo | p->id_product_hi << 8;
+            printf("Vendor ID 0x%02x, Product ID 0x%02x connected\n", USB_DEVICE[p->endpoint].vendor_id, USB_DEVICE[p->endpoint].product_id);        
         }
-        
+
         else if (p->messsage_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
 
         else if (p->messsage_type == USB_MSG_REPORT) {
@@ -189,25 +200,29 @@ void process_final_packet(FinalPacket *p) {
 
 }
 
-void process_raw_packet(uint8_t *raw_packet) {
+// void process_raw_packet(uint8_t *raw_packet) {
         
-    FinalPacket *p;
+//     FinalPacket *p;
     
-    p->endpoint     =   raw_packet[5];
-    p->message_type =   raw_packet[2];
-    p->hid_type     =   raw_packet[3];
-    p->device_type  =   raw_packet[4];
-    p->data_length  =   raw_packet[0];
-    p->data_length |=   raw_packet[1] << 8;
-    p->vendor_id    =   raw_packet[6];   
-    p->vendor_id   |=   raw_packet[7] << 8;
-    p->product_id   =   raw_packet[8];
-    p->product_id  |=   raw_packet[9] << 8;
+//     p->endpoint     =   raw_packet[5];
+//     p->message_type =   raw_packet[2];
+//     p->hid_type     =   raw_packet[3];
+//     p->device_type  =   raw_packet[4];
+//     p->data_length  =   raw_packet[0];
+//     p->data_length |=   raw_packet[1] << 8;
+//     p->vendor_id    =   raw_packet[6];   
+//     p->vendor_id   |=   raw_packet[7] << 8;
+//     p->product_id   =   raw_packet[8];
+//     p->product_id  |=   raw_packet[9] << 8;
     
-    memcpy(&(p->packet_data), &(raw_packet[10]), sizeof(p->packet_data));
+//     memcpy(&(p->packet_data), &(raw_packet[10]), sizeof(p->packet_data));
 
-    process_final_packet(p);
+//     process_final_packet(p);
 
+// }
+
+void process_raw_packet(uint8_t *raw_packet) {        
+    process_final_packet((FinalPacket*)raw_packet);
 }
 
 void process_data(uint8_t data, State *state) {
