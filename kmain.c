@@ -343,7 +343,7 @@ void kmain() {
 
         //CHAR_DEVICE *duart_b = mcGetDevice(1);
         CharDevice duart_b;
-        mcGetDevice(1, &duart_b)
+        mcGetDevice(1, &duart_b);
         install_interrupt(&duart_b);
 
         printf("Interrupt handler installed\n");
