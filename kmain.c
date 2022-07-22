@@ -146,15 +146,15 @@ void process_packet(uint8_t *packet) {
         
         DEBUGF("Data packet: ");
 
-        if (packet[2] == USB_MSG_CONNECT) printf("Device connected\n");
+        if (meta[2] == USB_MSG_CONNECT) printf("Device connected\n");
         
-        else if (packet[2] == USB_MSG_DISCONNECT) printf("Device disconnected\n");
+        else if (meta[2] == USB_MSG_DISCONNECT) printf("Device disconnected\n");
 
-        else if (packet[2] == USB_MSG_REPORT) {
+        else if (meta[2] == USB_MSG_REPORT) {
 
-            if ((packet[8] == 0x14) && (packet[9] == 0x72)) {
-                process_gamepad(&packet[10]);
-            } else process_strikes(&packet[10]);
+            if ((meta[8] == 0x14) && (meta[9] == 0x72)) {
+                process_gamepad(&packet[0]);
+            } else process_strikes(&packet[0]);
 
         }
 
@@ -198,7 +198,6 @@ void process_data(uint8_t data, State *state) {
     case STATE_AWAIT_LEN_LO:
         DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_META [0x%02x]\r\n\r\n", data);
         state->remain_len |= data << 8;
-        state->remain_len += 8;
         state->state = STATE_FILL_META;
         state->meta[state->meta_ptr++] = data;
         //state->packet[state->packet_ptr++] = data;
@@ -208,10 +207,15 @@ void process_data(uint8_t data, State *state) {
         state->meta[state->meta_ptr++] = data;
 
         if (state->meta_ptr == 9) {
-            // All data transferred, expect a "\n" to close the communication.
-            DEBUGF("(STATE_FILL_META         -> STATE_FILL_DATA (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
-            state->state = STATE_FILL_DATA;
+
+            if (state->remain_len) {
+
+                // Finished reading metadata, now move on to packet data if there is any
+                DEBUGF("(STATE_FILL_META         -> STATE_FILL_DATA (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
+                state->state = STATE_FILL_DATA;
             
+            } else state->state = STATE_CHECK_FILLED; //If there isn't any packet data (remain_len == 0) then skip to the end.
+
         } 
 #ifdef DEBUG_PACKETS
         else {
