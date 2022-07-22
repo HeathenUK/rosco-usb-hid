@@ -48,14 +48,36 @@ typedef enum {
     STATE_CHECK_FILLED
 } STATE;
 
+typedef enum {
+    KEYBOARD,
+    GAMEPAD
+} DEV_TYPE;
+
+typedef struct {
+
+    uint8_t     endpoint;
+    DEV_TYPE    dev_type;
+
+} USB_DEVICE;
+
 typedef struct {
     STATE   state;
-    uint8_t meta_ptr;
-    uint8_t meta[10];
     uint8_t packet[2048];           // I don't know how big this needs to be - size of biggest packet
     uint16_t packet_ptr;            // If packet array gets bigger, this needs more bits too...
     uint16_t remain_len;            // Fill length remaining (only valid in STATE_FILL_DATA)
 } State;
+
+typedef struct {
+
+    uint8_t     endpoint;
+    uint8_t     message_type;
+    uint8_t     hid_type;
+    uint16_t    data_length;
+    uint16_t    vendor_id;
+    uint16_t    product_id;
+    uint8_t     packet_data[2048];
+
+} FinalPacket
 
 extern void install_interrupt(CHAR_DEVICE *device);
 extern void remove_interrupt();
@@ -141,25 +163,41 @@ void process_gamepad(uint8_t* new_pad) {
 
 }
 
-void process_packet(uint8_t *packet) {
-    //if ((packet[2] == 0x04) && ((packet[3] == 0x06) || (packet[3] == 0x05))) {
+void process_final_packet(FinalPacket *p) {
+
+        if (p->messsage_type == USB_MSG_CONNECT) printf("Device connected\n");
         
-        DEBUGF("Data packet: ");
+        else if (p->messsage_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
 
-        if (meta[2] == USB_MSG_CONNECT) printf("Device connected\n");
-        
-        else if (meta[2] == USB_MSG_DISCONNECT) printf("Device disconnected\n");
+        else if (p->messsage_type == USB_MSG_REPORT) {
 
-        else if (meta[2] == USB_MSG_REPORT) {
-
-            if ((meta[8] == 0x14) && (meta[9] == 0x72)) {
-                process_gamepad(&packet[0]);
-            } else process_strikes(&packet[0]);
+            if ((p->packet_data[8] == 0x14) && (p->packet_data[9] == 0x72)) {
+                process_gamepad(&(p->packet_data[0]));
+            } else process_strikes(&(p->packet_data[0]));
 
         }
 
-        DEBUGF("\r\n");
-//}
+}
+
+void process_raw_packet(uint8_t *raw_packet) {
+        
+    FinalPacket *p;
+    
+    p->endpoint     =   raw_packet[5];
+    p->message_type =   raw_packet[2];
+    p->hid_type     =   raw_packet[3];
+    p->device_type  =   raw_packet[4];
+    p->data_length  =   raw_packet[0];
+    p->data_length |=   raw_packet[1] << 8;
+    p->vendor_id    =   raw_packet[6];   
+    p->vendor_id   |=   raw_packet[7] << 8;
+    p->product_id   =   raw_packet[8];
+    p->product_id  |=   raw_packet[9] << 8;
+    
+    memcpy(&(p->packet_data), &(raw_packet[10]), sizeof(p->packet_data));
+
+    process_final_packet(p);
+
 }
 
 void process_data(uint8_t data, State *state) {
@@ -177,7 +215,6 @@ void process_data(uint8_t data, State *state) {
             // valid - length is next
             DEBUGF("(STATE_AWAIT_SIG_1      -> STATE_AWAIT_LEN_HI [0x%02x]\r\n\r\n", data);
             state->state = STATE_AWAIT_LEN_HI;
-            state->meta_ptr = 0;
             state->packet_ptr = 0;
         } else {
             // invalid - back to discard
@@ -191,38 +228,15 @@ void process_data(uint8_t data, State *state) {
         DEBUGF("(STATE_AWAIT_LEN_HI     -> STATE_AWAIT_LEN_LO [0x%02x]\r\n\r\n", data);
         state->remain_len = data;
         state->state = STATE_AWAIT_LEN_LO;
-        state->meta[state->meta_ptr++] = data;
-        //state->packet[state->packet_ptr++] = data;
+        state->packet[state->packet_ptr++] = data;
         break;
 
     case STATE_AWAIT_LEN_LO:
-        DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_META [0x%02x]\r\n\r\n", data);
+        DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
         state->remain_len |= data << 8;
-        state->state = STATE_FILL_META;
-        state->meta[state->meta_ptr++] = data;
-        //state->packet[state->packet_ptr++] = data;
-        break;
-
-    case STATE_FILL_META:
-        state->meta[state->meta_ptr++] = data;
-
-        if (state->meta_ptr == 9) {
-
-            if (state->remain_len) {
-
-                // Finished reading metadata, now move on to packet data if there is any
-                DEBUGF("(STATE_FILL_META         -> STATE_FILL_DATA (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
-                state->state = STATE_FILL_DATA;
-            
-            } else state->state = STATE_CHECK_FILLED; //If there isn't any packet data (remain_len == 0) then skip to the end.
-
-        } 
-#ifdef DEBUG_PACKETS
-        else {
-            DEBUGF("                        #  META FILL [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
-        }
-#endif
-
+        state->remain_len += 8;
+        state->state = STATE_FILL_DATA;
+        state->packet[state->packet_ptr++] = data;
         break;
 
     case STATE_FILL_DATA:
@@ -247,7 +261,7 @@ void process_data(uint8_t data, State *state) {
 	   //if (state->packet[state->packet_ptr] == '\n') {
          if (data == '\n') {
                state->state = STATE_DISCARD;
-               process_packet(state->packet);
+               process_raw_packet(state->packet);
            } else {
             DEBUGF("BAD PACKET?");
             state->state = STATE_DISCARD;
