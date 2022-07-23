@@ -20,6 +20,7 @@
 #define DEBUGF(...)
 #endif
 
+#define KEY_CAPSLOCK 0x39
 
 #define USB_MSG_CONNECT     0x01
 #define USB_MSG_DISCONNECT  0x02
@@ -97,6 +98,13 @@ unsigned char keys_lower[60] = {0x00,'\0','\0','\0',
 
 uint8_t last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0',};
 
+static bool keyboard_cap = false;
+
+bool isSet(unsigned value, unsigned bitindex)
+{
+    return (value & (1 << bitindex)) != 0;
+}
+
 int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 {
 
@@ -112,31 +120,35 @@ int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 
 void process_strikes(uint8_t* new_keys) {
 
-    //CHAR_DEVICE *duart_a = mcGetDevice(0);
     CharDevice duart_a;
     if (mcGetDevice(0, &duart_a)) {
 
-        for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
+    
+         for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
 
-            if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
-
-            // if (!strchr(new_keys,last_ingest[i])) { // OLD STRCHR CODE
-            
-            //     if (last_ingest[0] == 0x20) fctprintf(mcSendDevice, duart_a, "%c", keys_upper[new_keys[i]]);
-            //     else fctprintf(mcSendDevice, duart_a, "%c", keys_lower[new_keys[i]]);
-
-            // }
+            if (new_keys[i] == KEY_CAPSLOCK) {
+                keyboard_cap = !keyboard_cap;
+                return;
+            }
+            if (keyboard_cap == false) {
+                if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
+                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
+                } else {
+                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
+                }
+            } else {
+                if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
+                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
+                } else {
+                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
+                }
+            }
 
         }
 
-    }
-    memcpy(last_ingest, new_keys, 8);
+     }
+     memcpy(last_ingest, new_keys, 8);
 
-}
-
-bool isSet(unsigned value, unsigned bitindex)
-{
-    return (value & (1 << bitindex)) != 0;
 }
 
 void process_gamepad(uint8_t* new_pad) {
@@ -245,7 +257,7 @@ void process_data(uint8_t data, State *state) {
         DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
         state->remain_len |= data << 8;
 
-        if (state->remain_len == 0x0A21) {
+        if ((state->remain_len == 0x0A21) || (state->remain_len == 0x0A00)) {
 
             state->state = STATE_DISCARD;
             break;
