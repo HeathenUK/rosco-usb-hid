@@ -183,7 +183,15 @@ void process_final_packet(FinalPacket *p) {
             printf("Vendor ID 0x%04x, Product ID 0x%04x connected\n", USB_DEVICE[p->device].vendor_id, USB_DEVICE[p->device].product_id);        
         }
 
-        else if (p->message_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
+        else if (p->message_type == USB_MSG_DISCONNECT) {
+            
+            USB_DEVICE[p->device].connected=false;
+            USB_DEVICE[p->device].vendor_id=0xFFFF;
+            USB_DEVICE[p->device].product_id=0xFFFF;
+            USB_DEVICE[p->device].dev_type=UNKNOWN;
+            printf("Device # %d disconnected\n", p->device);
+
+        }
 
         else if (p->message_type == USB_MSG_REPORT) {
 
