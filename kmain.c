@@ -177,11 +177,10 @@ void process_final_packet(FinalPacket *p) {
             USB_DEVICE[p->device].connected = true;
         }
 
-        if ((p->message_type == USB_MSG_DESCRIPTOR)) {
-            printf("\nVL: 0x%02x\n", p->id_vendor_lo);
+        if ((p->message_type == USB_MSG_DESCRIPTOR) && (USB_DEVICE[p->device].vendor_id == 0xFFFF)) {
             USB_DEVICE[p->device].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
             USB_DEVICE[p->device].product_id = p->id_product_lo | p->id_product_hi << 8;
-            printf("Vendor ID 0x%02x, Product ID 0x%02x connected\n", USB_DEVICE[p->device].vendor_id, USB_DEVICE[p->device].product_id);        
+            printf("Vendor ID 0x%04x, Product ID 0x%04x connected\n", USB_DEVICE[p->device].vendor_id, USB_DEVICE[p->device].product_id);        
         }
 
         else if (p->message_type == USB_MSG_DISCONNECT) printf("Device disconnected\n");
