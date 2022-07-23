@@ -9,7 +9,7 @@
 #include <string.h>
 
 //#define U_DEBUG
-//#define DEBUG_PACKETS           // Define to dump some debug info
+#define DEBUG_PACKETS           // Define to dump some debug info
 //#define DEBUG_VERBOSE           // Define to dump more debug info (use along with DEBUG_PACKETS)
 //#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
 
@@ -51,8 +51,8 @@ typedef enum {
 
 
 struct {
-
     bool        connected;
+    bool        announced;
     uint16_t    vendor_id;
     uint16_t    product_id;
     DEV_TYPE    dev_type;
@@ -189,15 +189,21 @@ void process_final_packet(FinalPacket *p) {
             USB_DEVICE[p->device].connected = true;
         }
 
-        if ((p->message_type == USB_MSG_DESCRIPTOR) && (USB_DEVICE[p->device].vendor_id == 0xFFFF)) {
-            USB_DEVICE[p->device].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
-            USB_DEVICE[p->device].product_id = p->id_product_lo | p->id_product_hi << 8;
-            printf("Vendor ID 0x%04x, Product ID 0x%04x connected\n", USB_DEVICE[p->device].vendor_id, USB_DEVICE[p->device].product_id);        
+        if ((p->message_type == USB_MSG_DESCRIPTOR)) {
+            if (USB_DEVICE[p->device].vendor_id == 0xFFFF) {
+                USB_DEVICE[p->device].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+                 printf("V:0x%04x\n", (p->id_vendor_lo) | (p->id_vendor_hi << 8));
+                 printf("V2:0x%04x\n", USB_DEVICE[p->device].vendor_id);
+                USB_DEVICE[p->device].product_id = p->id_product_lo | p->id_product_hi << 8;
+                printf("Vendor ID 0x%04x, Product ID 0x%04x connected\n", USB_DEVICE[p->device].vendor_id, USB_DEVICE[p->device].product_id);
+                USB_DEVICE[p->device].announced = true;        
+            } else printf("I think I've already announced this device?\n");
         }
 
         else if (p->message_type == USB_MSG_DISCONNECT) {
             
             USB_DEVICE[p->device].connected=false;
+            USB_DEVICE[p->device].announced=false;
             USB_DEVICE[p->device].vendor_id=0xFFFF;
             USB_DEVICE[p->device].product_id=0xFFFF;
             USB_DEVICE[p->device].dev_type=UNKNOWN;
@@ -403,6 +409,7 @@ void kmain() {
         for (int i = 0; i < MAX_DEVICES; i++) {
 
             USB_DEVICE[i].connected=false;
+            USB_DEVICE[i].announced=false;
             USB_DEVICE[i].vendor_id=0xFFFF;
             USB_DEVICE[i].product_id=0xFFFF;
             USB_DEVICE[i].dev_type=UNKNOWN;
