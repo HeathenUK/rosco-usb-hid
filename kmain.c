@@ -9,7 +9,7 @@
 #include <string.h>
 
 //#define U_DEBUG
-#define DEBUG_PACKETS           // Define to dump some debug info
+//#define DEBUG_PACKETS           // Define to dump some debug info
 //#define DEBUG_VERBOSE           // Define to dump more debug info (use along with DEBUG_PACKETS)
 //#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
 
@@ -37,7 +37,7 @@ typedef enum {
     STATE_AWAIT_SIG_1,
     STATE_AWAIT_LEN_HI,
     STATE_AWAIT_LEN_LO,
-    STATE_FILL_TYPE,
+//    STATE_FILL_TYPE,
     STATE_FILL_DATA,
     STATE_CHECK_FILLED
 } STATE;
@@ -170,7 +170,7 @@ void process_gamepad(uint8_t* new_pad) {
 
 void process_final_packet(FinalPacket *p) {
         
-    printf("\nFinal packet of type 0x%02x received", p->message_type);
+    printf("\nFinal packet of type 0x%02x received\n", p->message_type);
 
         if (p->message_type == USB_MSG_CONNECT) {        
             printf("\nDevice # %d connected, awaiting device info\n",p->device);
@@ -227,12 +227,6 @@ void process_data(uint8_t data, State *state) {
 
     case STATE_AWAIT_LEN_HI:
         
-        // if (data == 0x0A) {
-        //     // invalid - back to discard
-        //     DEBUGF("(STATE_AWAIT_LEN_HI      -> STATE_DISCARD [0x%02x]\r\n\r\n", data);
-        //     state->state = STATE_DISCARD;
-        //     break;
-        // }
         DEBUGF("(STATE_AWAIT_LEN_HI     -> STATE_AWAIT_LEN_LO [0x%02x]\r\n\r\n", data);
         state->remain_len = data;
         state->state = STATE_AWAIT_LEN_LO;
@@ -243,25 +237,33 @@ void process_data(uint8_t data, State *state) {
         
         DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
         state->remain_len |= data << 8;
+
+        if (state->remain_len == 0x0A21) {
+
+            state->state = STATE_DISCARD;
+            break;
+
+        }
+
         state->remain_len += 8;
-        state->state = STATE_FILL_TYPE;
-        state->packet[state->packet_ptr++] = data;
-        break;
-
-    case STATE_FILL_TYPE:
-        
-        // if ((data == 0x01) || (data == 0x02) || (data == 0x03)) { //Filter out potentially wonky packets
-
-        //     DEBUGF("(STATE_FILL_TYPE      -> STATE_DISCARD [0x%02x]\r\n\r\n", data);
-        //     state->state = STATE_DISCARD;
-        //     break;
-
-        // }
-
-        DEBUGF("(STATE_FILLE_TYPE     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
         state->state = STATE_FILL_DATA;
         state->packet[state->packet_ptr++] = data;
         break;
+
+    // case STATE_FILL_TYPE:
+        
+    //     // if ((data == 0x01) || (data == 0x02) || (data == 0x03)) { //Filter out potentially wonky packets
+
+    //     //     DEBUGF("(STATE_FILL_TYPE      -> STATE_DISCARD [0x%02x]\r\n\r\n", data);
+    //     //     state->state = STATE_DISCARD;
+    //     //     break;
+
+    //     // }
+
+    //     DEBUGF("(STATE_FILL_TYPE     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
+    //     state->state = STATE_FILL_DATA;
+    //     state->packet[state->packet_ptr++] = data;
+    //     break;
 
     case STATE_FILL_DATA:
 
@@ -269,7 +271,7 @@ void process_data(uint8_t data, State *state) {
 
         if (--state->remain_len == 0) {
             // All data transferred, expect a "\n" to close the communication.
-            DEBUGF("(STATE_FILL_DATA         -> STATE_DISCARD (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
+            DEBUGF("(STATE_FILL_DATA         -> STATE_CHECK_FILLED (and process) [0x%02x] [remain_len = 0x%04x]\r\n\r\n", data, state->remain_len);
             state->state = STATE_CHECK_FILLED;
             
         } 
@@ -281,17 +283,15 @@ void process_data(uint8_t data, State *state) {
 
         break;
 
-	case STATE_CHECK_FILLED:
-	   //state->packet[state->packet_ptr++] = data;	
-	   //if (state->packet[state->packet_ptr] == '\n') {
-         if (data == '\n') {
-               state->state = STATE_DISCARD;
-               process_raw_packet(state->packet);
-           } else {
-            DEBUGF("GOT 0x%02x. BAD PACKET?", data);
-            state->state = STATE_DISCARD;
-           }
-           break;
+   case STATE_CHECK_FILLED:
+        if (data != '\n') {
+            DEBUGF("GOT 0x%02x. BAD PACKET?\r\n", data);
+        }
+
+        state->state = STATE_DISCARD;
+        process_raw_packet(state->packet);
+
+        break;
         
     }
 }
