@@ -64,6 +64,36 @@ typedef enum {
     JOYSTICK
 } DEV_TYPE;
 
+struct {
+    bool pending;
+    
+    bool UP;
+    bool UP_RIGHT;
+    bool UP_LEFT;
+    bool DOWN;
+    bool DOWN_RIGHT;
+    bool DOWN_LEFT;
+    bool LEFT;
+    bool RIGHT;
+
+    bool Y;
+    bool A;
+    bool X;
+    bool B;
+    
+    bool LT;
+    bool RT;
+    bool LS;
+    bool RS;
+
+} PAD[MAX_DEVICES];
+
+struct {
+    bool pending;
+    char key;
+    bool caps;
+
+} KB[MAX_DEVICES];
 
 struct {
     bool        connected;
@@ -112,7 +142,7 @@ unsigned char keys_lower[60] = {0x00,'\0','\0','\0',
 
 uint8_t last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0',};
 
-static bool keyboard_cap = false;
+//static bool keyboard_cap = false;
 
 bool isSet(unsigned value, unsigned bitindex)
 {
@@ -132,18 +162,16 @@ int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 
 }
 
-void process_strikes(uint8_t* new_keys) {
-
-    CharDevice duart_a;
-    if (mcGetDevice(0, &duart_a)) {
+void process_strikes(uint8_t* new_keys, uint8_t port) {
          
          for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
             
             if (new_keys[i] == KEY_CAPSLOCK) {
-                keyboard_cap = !keyboard_cap;
+                KB[port].caps = !KB[port].caps;
                 return;
             }
 
+            #ifdef DEBUG_PACKETS
             if (new_keys[i] == 0x18) {
                 
                 printf("\n\nUSB REPORT:\n\n");
@@ -159,64 +187,80 @@ void process_strikes(uint8_t* new_keys) {
                 printf("\n");
 
             }
-            if (keyboard_cap == false) {
-                if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
-                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
-                } else {
-                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
-                }
+            #endif
+            // if (keyboard_cap == false) {
+            //     if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
+            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
+            //     } else {
+            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
+            //     }
+            // } else {
+            //     if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
+            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
+            //     } else {
+            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
+            //     }
+            // }
+
+            if ((KB[port].caps) || (isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
+                if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];
             } else {
-                if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
-                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
-                } else {
-                    if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
-                }
+                if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_lower[new_keys[i]];
             }
-
         }
-
-     }
-     memcpy(last_ingest, new_keys, 8);
+    //printf("%c registered\n", KB[port].key);
+    KB[port].pending = true;
+    memcpy(last_ingest, new_keys, 8);
 
 }
 
-void process_gamepad(uint8_t* new_pad, uint8_t port) {
+void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid) {
 
-    uint8_t dpad = new_pad[2]; 
-    if (dpad != 0x80) {
-        switch (dpad) {
-            //case 0x80: break;
-            case 0x00: printf("Port %d: Up!\n", port); break;
-            case 0x01: printf("Port %d: Up-Right!\n", port); break;
-            case 0x02: printf("Port %d: Right!\n", port); break;
-            case 0x03: printf("Port %d: Down-Right!\n", port); break;
-            case 0x04: printf("Port %d: Down!\n", port); break;
-            case 0x05: printf("Port %d: Down-Left!\n", port); break;
-            case 0x06: printf("Port %d: Left!\n", port); break;
-            case 0x07: printf("Port %d: Up-Left!\n", port); break;
-            default: break;
-        }
+    //Nvidia Shield Controller Mapper
+    if (vid == 0x0955 && pid == 0x7214) {
+        uint8_t dpad = new_pad[2];
+        uint8_t apad = new_pad[3];
+
+        PAD[port].UP =      (dpad == 0x00) ? true : false;
+        PAD[port].RIGHT =   (dpad == 0x02) ? true : false;
+        PAD[port].DOWN =    (dpad == 0x04) ? true : false;
+        PAD[port].LEFT =    (dpad == 0x06) ? true : false;
+
+        PAD[port].A =       (apad == 0x01) ? true : false;
+        PAD[port].B =       (apad == 0x02) ? true : false;
+        PAD[port].X =       (apad == 0x04) ? true : false;
+        PAD[port].Y =       (apad == 0x08) ? true : false;
+        PAD[port].LT =      (apad == 0x10) ? true : false;
+        PAD[port].RT =      (apad == 0x20) ? true : false;
+        PAD[port].LS =      (apad == 0x40) ? true : false;
+        PAD[port].RS =      (apad == 0x80) ? true : false;
+
+        PAD[port].pending = true;
     }
-    
-    // if (new_pad[2] != 0x80) {
+    //DS4 Controller Mapper
+    else if ((vid == 0x054c) && ((pid == 0x05CC) || (pid == 0x09CC)) ) {
+        uint8_t dpad = new_pad[5] & 0x0F;
+        uint8_t apad = new_pad[5] >> 4;
 
-    //     if (new_pad[2] == 0x00) printf("Port %d: Up!\n", port);
-    //     if (new_pad[2] == 0x04) printf("Down!\n");
-    //     if (new_pad[2] == 0x06) printf("Left!\n");
-    //     if (new_pad[2] == 0x02) printf("Right!\n");
+        PAD[port].UP =          (dpad == 0x00) ? true : false;
+        PAD[port].UP_RIGHT =    (dpad == 0x01) ? true : false;
+        PAD[port].RIGHT =       (dpad == 0x02) ? true : false;
+        PAD[port].DOWN_RIGHT =  (dpad == 0x03) ? true : false;
+        PAD[port].DOWN =        (dpad == 0x04) ? true : false;
+        PAD[port].DOWN_LEFT =   (dpad == 0x05) ? true : false;
+        PAD[port].LEFT =        (dpad == 0x06) ? true : false;
+        PAD[port].UP_LEFT =     (dpad == 0x07) ? true : false;
 
-    // }
+        PAD[port].A =           (apad == 0x02) ? true : false;
+        PAD[port].B =           (apad == 0x04) ? true : false;
+        PAD[port].X =           (apad == 0x01) ? true : false;
+        PAD[port].Y =           (apad == 0x08) ? true : false;
+        // PAD[port].LT =      (apad == 0x10) ? true : false;
+        // PAD[port].RT =      (apad == 0x20) ? true : false;
+        // PAD[port].LS =      (apad == 0x40) ? true : false;
+        // PAD[port].RS =      (apad == 0x80) ? true : false;
 
-    if (new_pad[3] != 0x00) {
-
-        if (isSet(new_pad[3], 0)) printf("A button!\n");
-        if (isSet(new_pad[3], 1)) printf("B button!\n");
-        if (isSet(new_pad[3], 2)) printf("X button!\n");
-        if (isSet(new_pad[3], 3)) printf("Y button!\n");
-        if (isSet(new_pad[3], 4)) printf("Left trigger!\n");
-        if (isSet(new_pad[3], 5)) printf("Right trigger!\n");
-        if (isSet(new_pad[3], 6)) printf("Left stick!\n");
-        if (isSet(new_pad[3], 7)) printf("Right stick!\n");
+        PAD[port].pending = true;
 
     }
 
@@ -259,6 +303,12 @@ void process_final_packet(FinalPacket *p) {
         else if (p->message_type == USB_MSG_REPORT) {
 
             USB_DEVICE[dev].connected = true;
+            if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
+                USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+                USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
+                DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
+            }
+
             if (USB_DEVICE[dev].dev_type == UNKNOWN) {
                 
                 switch (p->type) {
@@ -277,8 +327,8 @@ void process_final_packet(FinalPacket *p) {
                     case UNKNOWN: break;
                     case MOUSE: break;
                     case JOYSTICK: break;
-                    case KEYBOARD:  process_strikes(&(p->payload[0])); break; 
-                    case GAMEPAD:   process_gamepad(&(p->payload[0]), dev); break;
+                    case KEYBOARD:  process_strikes(&(p->payload[0]), dev); break; 
+                    case GAMEPAD:   process_gamepad(&(p->payload[0]), dev, USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id); break;
             }
             
 
@@ -468,9 +518,39 @@ void kmain() {
             USB_DEVICE[i].dev_type=UNKNOWN;
     
         }
+      while (true) {            
+            
+            //Main loop - go until input is provided (do other things in here)
+            while ((!PAD[0].pending) && (!PAD[1].pending && (!KB[0].pending)) && (!KB[1].pending)) {
+                process_incoming(&state);
+            }
 
-        while (true) {            
-            process_incoming(&state);
+    //Once input has been flagged up, check it, service it, and then return to the main loop.  
+    if (PAD[0].pending) {
+         PAD[0].pending = false;
+         if (PAD[0].UP) printf("0: Up\n");
+         else if (PAD[0].DOWN) printf("0: Down\n");
+         else if (PAD[0].LEFT) printf("0: Left\n");
+         else if (PAD[0].RIGHT) printf("0: Right\n");
+    }
+    if (PAD[1].pending) {
+         PAD[1].pending = false;
+         if (PAD[1].UP) printf("1: Up\n");
+         else if (PAD[1].DOWN) printf("1: Down\n");
+         else if (PAD[1].LEFT) printf("1: Left\n");
+         else if (PAD[1].RIGHT) printf("1: Right\n");
+    }
+      if (KB[0].pending) {
+        KB[0].pending = false;
+        printf("%c", KB[0].key);
+        KB[0].key = 0x00;
+    }            
+      if (KB[1].pending) {
+        KB[1].pending = false;
+        printf("%c", KB[1].key);
+        KB[1].key = 0x00;
+    }
+
 #ifdef DEBUG_HEARTBEAT        
             fctprintf(mcSendDevice, &duart_a, "*");
 #endif        
