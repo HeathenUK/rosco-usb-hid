@@ -31,7 +31,13 @@
 #define USB_MSG_DESCRIPTOR  0x07
 #define USB_MSG_STARTUP     0x08
 
-#define MAX_DEVICES         8
+#define TYPE_UNKNOWN	    0x00
+#define TYPE_MOUSE		    0x02
+#define TYPE_JOYSTICK	    0x04
+#define TYPE_GAMEPAD	    0x05
+#define TYPE_KEYBOARD	    0x06
+
+#define MAX_DEVICES         2
 
 typedef enum {
     STATE_DISCARD,
@@ -46,13 +52,14 @@ typedef enum {
 typedef enum {
     UNKNOWN,
     KEYBOARD,
-    GAMEPAD
+    MOUSE,
+    GAMEPAD,
+    JOYSTICK
 } DEV_TYPE;
 
 
 struct {
     bool        connected;
-    bool        announced;
     uint16_t    vendor_id;
     uint16_t    product_id;
     DEV_TYPE    dev_type;
@@ -122,13 +129,28 @@ void process_strikes(uint8_t* new_keys) {
 
     CharDevice duart_a;
     if (mcGetDevice(0, &duart_a)) {
-
-    
+         
          for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
-
+            
             if (new_keys[i] == KEY_CAPSLOCK) {
                 keyboard_cap = !keyboard_cap;
                 return;
+            }
+
+            if (new_keys[i] == 0x18) {
+                
+                printf("\n\nUSB REPORT:\n\n");
+                printf("\n\nUSB Endpoint 0:\n");
+                printf("Connected? %s\n", USB_DEVICE[0].connected?"Y":"N");
+                printf("VID 0x%04x, PID 0x%04x\n", USB_DEVICE[0].vendor_id, USB_DEVICE[0].product_id);
+                printf("Type 0x%02x\n", USB_DEVICE[0].dev_type);
+                printf("\n");
+                printf("\n\nUSB Endpoint 1:\n");
+                printf("Connected? %s\n", USB_DEVICE[1].connected?"Y":"N");
+                printf("VID 0x%04x, PID 0x%04x\n", USB_DEVICE[1].vendor_id, USB_DEVICE[1].product_id);
+                printf("Type 0x%02x\n", USB_DEVICE[1].dev_type);
+                printf("\n");
+
             }
             if (keyboard_cap == false) {
                 if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
@@ -184,38 +206,59 @@ void process_final_packet(FinalPacket *p) {
         
     printf("\nFinal packet of type 0x%02x received\n", p->message_type);
 
+        uint8_t dev = p->endpoint;
+
         if (p->message_type == USB_MSG_CONNECT) {        
-            printf("\nDevice # %d connected, awaiting device info\n",p->device);
-            USB_DEVICE[p->device].connected = true;
+            printf("\nDevice # %d connected, awaiting device info\n",dev);
+            USB_DEVICE[dev].connected = true;
         }
 
         if ((p->message_type == USB_MSG_DESCRIPTOR)) {
-            if (USB_DEVICE[p->device].vendor_id == 0xFFFF) {
-                USB_DEVICE[p->device].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
-                 printf("V:0x%04x\n", (p->id_vendor_lo) | (p->id_vendor_hi << 8));
-                 printf("V2:0x%04x\n", USB_DEVICE[p->device].vendor_id);
-                USB_DEVICE[p->device].product_id = p->id_product_lo | p->id_product_hi << 8;
-                printf("Vendor ID 0x%04x, Product ID 0x%04x connected\n", USB_DEVICE[p->device].vendor_id, USB_DEVICE[p->device].product_id);
-                USB_DEVICE[p->device].announced = true;        
+            if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
+                USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+                USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
+                printf("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
             } else printf("I think I've already announced this device?\n");
         }
 
         else if (p->message_type == USB_MSG_DISCONNECT) {
             
-            USB_DEVICE[p->device].connected=false;
-            USB_DEVICE[p->device].announced=false;
-            USB_DEVICE[p->device].vendor_id=0xFFFF;
-            USB_DEVICE[p->device].product_id=0xFFFF;
-            USB_DEVICE[p->device].dev_type=UNKNOWN;
-            printf("Device # %d disconnected\n", p->device);
+            USB_DEVICE[dev].connected=false;
+            USB_DEVICE[dev].vendor_id=0xFFFF;
+            USB_DEVICE[dev].product_id=0xFFFF;
+            USB_DEVICE[dev].dev_type=UNKNOWN;
+            printf("Device # %d disconnected\n", dev);
 
         }
 
         else if (p->message_type == USB_MSG_REPORT) {
 
-            if ((p->id_product_lo == 0x14) && (p->id_product_hi == 0x72)) {
-                process_gamepad(&(p->payload[0]));
-            } else process_strikes(&(p->payload[0]));
+            if (USB_DEVICE[dev].dev_type == UNKNOWN) {
+                
+                switch (p->type) {
+
+                    case TYPE_GAMEPAD: USB_DEVICE[dev].dev_type =  GAMEPAD; break;
+                    case TYPE_MOUSE: USB_DEVICE[dev].dev_type =    MOUSE; break;
+                    case TYPE_KEYBOARD: USB_DEVICE[dev].dev_type = KEYBOARD; break;
+                    case TYPE_JOYSTICK: USB_DEVICE[dev].dev_type = JOYSTICK; break;
+
+                }
+
+            }
+
+            switch (USB_DEVICE[p->device].dev_type) {
+
+                    case UNKNOWN: break;
+                    case MOUSE: break;
+                    case JOYSTICK: break;
+                    case KEYBOARD:  process_strikes(&(p->payload[0])); break; 
+                    case GAMEPAD:   process_gamepad(&(p->payload[0])); break;
+            }
+            
+
+            // if ((p->id_product_lo == 0x14) && (p->id_product_hi == 0x72)) {
+            //     process_gamepad(&(p->payload[0]));
+            // } else process_strikes(&(p->payload[0]));
 
         }
 
@@ -240,7 +283,7 @@ void process_data(uint8_t data, State *state) {
         if (data == 0xED) {
             // valid - length is next
             DEBUGF("(STATE_AWAIT_SIG_1      -> STATE_AWAIT_LEN_HI [0x%02x]\r\n\r\n", data);
-            state->state = STATE_AWAIT_LEN_HI;
+            state->state = STATE_AWAIT_LEN_LO;
             state->packet_ptr = 0;
         } else {
             // invalid - back to discard
@@ -250,45 +293,30 @@ void process_data(uint8_t data, State *state) {
 
         break;
 
-    case STATE_AWAIT_LEN_HI:
+    case STATE_AWAIT_LEN_LO:
         
-        DEBUGF("(STATE_AWAIT_LEN_HI     -> STATE_AWAIT_LEN_LO [0x%02x]\r\n\r\n", data);
+        DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_AWAIT_LEN_HI [0x%02x]\r\n\r\n", data);
         state->remain_len = data;
-        state->state = STATE_AWAIT_LEN_LO;
+        state->state = STATE_AWAIT_LEN_HI;
         state->packet[state->packet_ptr++] = data;
         break;
 
-    case STATE_AWAIT_LEN_LO:    
+    case STATE_AWAIT_LEN_HI:    
         
-        DEBUGF("(STATE_AWAIT_LEN_LO     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
-        state->remain_len |= data << 8;
-
-        if ((state->remain_len == 0x0A21) || (state->remain_len == 0x0A00)) {
+        DEBUGF("(STATE_AWAIT_LEN_HI     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
+        
+        if (data == 0x0A) {
 
             state->state = STATE_DISCARD;
             break;
 
         }
-
+        
+        state->remain_len |= data << 8;
         state->remain_len += 8;
         state->state = STATE_FILL_DATA;
         state->packet[state->packet_ptr++] = data;
         break;
-
-    // case STATE_FILL_TYPE:
-        
-    //     // if ((data == 0x01) || (data == 0x02) || (data == 0x03)) { //Filter out potentially wonky packets
-
-    //     //     DEBUGF("(STATE_FILL_TYPE      -> STATE_DISCARD [0x%02x]\r\n\r\n", data);
-    //     //     state->state = STATE_DISCARD;
-    //     //     break;
-
-    //     // }
-
-    //     DEBUGF("(STATE_FILL_TYPE     -> STATE_FILL_DATA [0x%02x]\r\n\r\n", data);
-    //     state->state = STATE_FILL_DATA;
-    //     state->packet[state->packet_ptr++] = data;
-    //     break;
 
     case STATE_FILL_DATA:
 
@@ -409,7 +437,6 @@ void kmain() {
         for (int i = 0; i < MAX_DEVICES; i++) {
 
             USB_DEVICE[i].connected=false;
-            USB_DEVICE[i].announced=false;
             USB_DEVICE[i].vendor_id=0xFFFF;
             USB_DEVICE[i].product_id=0xFFFF;
             USB_DEVICE[i].dev_type=UNKNOWN;
