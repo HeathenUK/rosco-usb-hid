@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 @HeathenUK
+ * Copyright (c) 2022 @HeathenUK, Ring bufffer and state machine implementation by RoscoPeco
  */
 
 #include <stdio.h>
