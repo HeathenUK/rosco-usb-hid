@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2022 @HeathenUK, Ring bufffer and state machine implementation by RoscoPeco
+ * Copyright (c) 2022 @HeathenUK, ring bufffer and state machine implementation by RoscoPeco
  */
 
 #include <stdio.h>
@@ -11,7 +11,7 @@
 //#define U_DEBUG
 //#define DEBUG_PACKETS           // Define to dump some debug info
 //#define DEBUG_VERBOSE           // Define to dump more debug info (use along with DEBUG_PACKETS)
-//#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
+#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
 
 #ifdef DEBUG_PACKETS
 //#define DEBUGF(...) do { printf(__VA_ARGS__); } while (0)
@@ -83,8 +83,15 @@ struct {
     
     bool LT;
     bool RT;
+
+    bool L2;
+    bool R2;
+
     bool LS;
     bool RS;
+
+    bool START;
+    bool SELECT;
 
 } PAD[MAX_DEVICES];
 
@@ -241,24 +248,33 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
     else if ((vid == 0x054c) && ((pid == 0x05CC) || (pid == 0x09CC)) ) {
         uint8_t dpad = new_pad[5] & 0x0F;
         uint8_t apad = new_pad[5] >> 4;
+        uint8_t xbut = new_pad[6];
 
-        PAD[port].UP =          (dpad == 0x00) ? true : false;
-        PAD[port].UP_RIGHT =    (dpad == 0x01) ? true : false;
-        PAD[port].RIGHT =       (dpad == 0x02) ? true : false;
-        PAD[port].DOWN_RIGHT =  (dpad == 0x03) ? true : false;
-        PAD[port].DOWN =        (dpad == 0x04) ? true : false;
-        PAD[port].DOWN_LEFT =   (dpad == 0x05) ? true : false;
-        PAD[port].LEFT =        (dpad == 0x06) ? true : false;
-        PAD[port].UP_LEFT =     (dpad == 0x07) ? true : false;
+        PAD[port].UP =          (dpad == 0) ? true : false;
+        PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
+        PAD[port].RIGHT =       (dpad == 2) ? true : false;
+        PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
+        PAD[port].DOWN =        (dpad == 4) ? true : false;
+        PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
+        PAD[port].LEFT =        (dpad == 6) ? true : false;
+        PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
 
-        PAD[port].A =           (apad == 0x02) ? true : false;
-        PAD[port].B =           (apad == 0x04) ? true : false;
-        PAD[port].X =           (apad == 0x01) ? true : false;
-        PAD[port].Y =           (apad == 0x08) ? true : false;
-        // PAD[port].LT =      (apad == 0x10) ? true : false;
-        // PAD[port].RT =      (apad == 0x20) ? true : false;
-        // PAD[port].LS =      (apad == 0x40) ? true : false;
-        // PAD[port].RS =      (apad == 0x80) ? true : false;
+        PAD[port].A =           (apad == 2) ? true : false;
+        PAD[port].B =           (apad == 4) ? true : false;
+        PAD[port].X =           (apad == 1) ? true : false;
+        PAD[port].Y =           (apad == 8) ? true : false;
+        
+        PAD[port].LT =          (xbut == 1) ? true : false;
+        PAD[port].RT =          (xbut == 2) ? true : false;
+
+        PAD[port].L2 =          (xbut == 4) ? true : false;
+        PAD[port].R2 =          (xbut == 8) ? true : false;
+
+        PAD[port].LS =          (xbut == 64) ? true : false;
+        PAD[port].RS =          (xbut == 128) ? true : false;
+
+        PAD[port].START =       (xbut == 32) ? true : false;
+        PAD[port].SELECT =      (xbut == 16) ? true : false;
 
         PAD[port].pending = true;
 
@@ -523,37 +539,73 @@ void kmain() {
             //Main loop - go until input is provided (do other things in here)
             while ((!PAD[0].pending) && (!PAD[1].pending && (!KB[0].pending)) && (!KB[1].pending)) {
                 process_incoming(&state);
+                #ifdef DEBUG_HEARTBEAT        
+                    fctprintf(mcSendDevice, &duart_a, "*");
+                #endif
             }
 
     //Once input has been flagged up, check it, service it, and then return to the main loop.  
     if (PAD[0].pending) {
-         PAD[0].pending = false;
-         if (PAD[0].UP) printf("0: Up\n");
-         else if (PAD[0].DOWN) printf("0: Down\n");
-         else if (PAD[0].LEFT) printf("0: Left\n");
-         else if (PAD[0].RIGHT) printf("0: Right\n");
+        PAD[0].pending = false;
+        if         (PAD[0].UP) printf("0: Up\n");
+        else if    (PAD[0].DOWN) printf("0: Down\n");
+        else if    (PAD[0].LEFT) printf("0: Left\n");
+        else if    (PAD[0].RIGHT) printf("0: Right\n");
+         
+        else if    (PAD[0].A) printf("0: A\n");
+        else if    (PAD[0].B) printf("0: B\n");
+        else if    (PAD[0].X) printf("0: X\n");
+        else if    (PAD[0].Y) printf("0: Y\n");
+         
+        else if    (PAD[0].LT) printf("0: Left Trigger\n");
+        else if    (PAD[0].L2) printf("0: Left Trigger 2\n");
+        else if    (PAD[0].RT) printf("0: Right Trigger\n");
+        else if    (PAD[0].R2) printf("0: Right Trigger 2\n");
+
+        else if    (PAD[0].LS) printf("0: Left Stick\n");
+        else if    (PAD[0].RS) printf("0: Right Stick\n");
+
+        else if    (PAD[0].START) printf("0: Start\n");
+        else if    (PAD[0].SELECT) printf("0: Select\n");
+
     }
     if (PAD[1].pending) {
-         PAD[1].pending = false;
-         if (PAD[1].UP) printf("1: Up\n");
-         else if (PAD[1].DOWN) printf("1: Down\n");
-         else if (PAD[1].LEFT) printf("1: Left\n");
-         else if (PAD[1].RIGHT) printf("1: Right\n");
+        PAD[1].pending = false;
+        if         (PAD[1].UP) printf("1: Up\n");
+        else if    (PAD[1].DOWN) printf("1: Down\n");
+        else if    (PAD[1].LEFT) printf("1: Left\n");
+        else if    (PAD[1].RIGHT) printf("1: Right\n");
+         
+        else if    (PAD[1].A) printf("1: A\n");
+        else if    (PAD[1].B) printf("1: B\n");
+        else if    (PAD[1].X) printf("1: X\n");
+        else if    (PAD[1].Y) printf("1: Y\n");
+         
+        else if    (PAD[1].LT) printf("1: Left Trigger\n");
+        else if    (PAD[1].L2) printf("1: Left Trigger 2\n");
+
+        else if    (PAD[1].RT) printf("1: Right Trigger\n");
+        else if    (PAD[1].R2) printf("1: Right Trigger 2\n");
+
+        else if    (PAD[1].LS) printf("1: Left Stick\n");
+        else if    (PAD[1].RS) printf("1: Right Stick\n");
+
+        else if    (PAD[1].START) printf("1: Start\n");
+        else if    (PAD[1].SELECT) printf("1: Select\n");
     }
-      if (KB[0].pending) {
+    
+    if (KB[0].pending) {
         KB[0].pending = false;
         printf("%c", KB[0].key);
         KB[0].key = 0x00;
     }            
-      if (KB[1].pending) {
+    
+    if (KB[1].pending) {
         KB[1].pending = false;
         printf("%c", KB[1].key);
         KB[1].key = 0x00;
     }
-
-#ifdef DEBUG_HEARTBEAT        
-            fctprintf(mcSendDevice, &duart_a, "*");
-#endif        
+      
         }
         }
     } else {
