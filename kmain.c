@@ -9,7 +9,7 @@
 #include <string.h>
 
 //#define U_DEBUG
-#define DEBUG_PACKETS           // Define to dump some debug info
+//#define DEBUG_PACKETS           // Define to dump some debug info
 //#define DEBUG_VERBOSE           // Define to dump more debug info (use along with DEBUG_PACKETS)
 //#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
 
@@ -18,6 +18,13 @@
 #define DEBUGF(...) do { CharDevice duart_a; if (mcGetDevice(0, &duart_a)) { fctprintf(mcSendDevice, &duart_a, __VA_ARGS__); }} while (0)
 #else
 #define DEBUGF(...)
+#endif
+
+#ifdef DEBUG_PACKETS
+//#define DEBUGF(...) do { printf(__VA_ARGS__); } while (0)
+#define DEBUGX(...) do { printf(__VA_ARGS__); } while (0)
+#else
+#define DEBUGX(...)
 #endif
 
 #define KEY_CAPSLOCK 0x39
@@ -173,19 +180,32 @@ void process_strikes(uint8_t* new_keys) {
 
 }
 
-void process_gamepad(uint8_t* new_pad) {
+void process_gamepad(uint8_t* new_pad, uint8_t port) {
 
-    // printf("\nChecking Gamepad Data\n");
-    // printf("Button byte: 0x%X\n", new_pad[3]);
-
-    if (new_pad[2] != 0x80) {
-
-        if (new_pad[2] == 0x00) printf("Up!\n");
-        if (new_pad[2] == 0x04) printf("Down!\n");
-        if (new_pad[2] == 0x06) printf("Left!\n");
-        if (new_pad[2] == 0x02) printf("Right!\n");
-
+    uint8_t dpad = new_pad[2]; 
+    if (dpad != 0x80) {
+        switch (dpad) {
+            //case 0x80: break;
+            case 0x00: printf("Port %d: Up!\n", port); break;
+            case 0x01: printf("Port %d: Up-Right!\n", port); break;
+            case 0x02: printf("Port %d: Right!\n", port); break;
+            case 0x03: printf("Port %d: Down-Right!\n", port); break;
+            case 0x04: printf("Port %d: Down!\n", port); break;
+            case 0x05: printf("Port %d: Down-Left!\n", port); break;
+            case 0x06: printf("Port %d: Left!\n", port); break;
+            case 0x07: printf("Port %d: Up-Left!\n", port); break;
+            default: break;
+        }
     }
+    
+    // if (new_pad[2] != 0x80) {
+
+    //     if (new_pad[2] == 0x00) printf("Port %d: Up!\n", port);
+    //     if (new_pad[2] == 0x04) printf("Down!\n");
+    //     if (new_pad[2] == 0x06) printf("Left!\n");
+    //     if (new_pad[2] == 0x02) printf("Right!\n");
+
+    // }
 
     if (new_pad[3] != 0x00) {
 
@@ -204,21 +224,26 @@ void process_gamepad(uint8_t* new_pad) {
 
 void process_final_packet(FinalPacket *p) {
         
-    printf("\nFinal packet of type 0x%02x received\n", p->message_type);
+    uint8_t dev = p->endpoint;
 
-        uint8_t dev = p->endpoint;
+    DEBUGX("\nFinal packet of type 0x%02x received from port %d\n", p->message_type, dev);
 
         if (p->message_type == USB_MSG_CONNECT) {        
-            printf("\nDevice # %d connected, awaiting device info\n",dev);
+            DEBUGX("\nDevice # %d connected, awaiting device info\n",dev);
             USB_DEVICE[dev].connected = true;
         }
 
         if ((p->message_type == USB_MSG_DESCRIPTOR)) {
+            USB_DEVICE[dev].connected = true;
             if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
                 USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
                 USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
-                printf("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
-            } else printf("I think I've already announced this device?\n");
+                DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
+            }
+            
+            #ifdef DEBUG_PACKETS
+                else DEBUGX("I think I've already announced this device?\n");
+            #endif
         }
 
         else if (p->message_type == USB_MSG_DISCONNECT) {
@@ -227,12 +252,13 @@ void process_final_packet(FinalPacket *p) {
             USB_DEVICE[dev].vendor_id=0xFFFF;
             USB_DEVICE[dev].product_id=0xFFFF;
             USB_DEVICE[dev].dev_type=UNKNOWN;
-            printf("Device # %d disconnected\n", dev);
+            DEBUGX("Device # %d disconnected\n", dev);
 
         }
 
         else if (p->message_type == USB_MSG_REPORT) {
 
+            USB_DEVICE[dev].connected = true;
             if (USB_DEVICE[dev].dev_type == UNKNOWN) {
                 
                 switch (p->type) {
@@ -246,13 +272,13 @@ void process_final_packet(FinalPacket *p) {
 
             }
 
-            switch (USB_DEVICE[p->device].dev_type) {
+            switch (USB_DEVICE[dev].dev_type) {
 
                     case UNKNOWN: break;
                     case MOUSE: break;
                     case JOYSTICK: break;
                     case KEYBOARD:  process_strikes(&(p->payload[0])); break; 
-                    case GAMEPAD:   process_gamepad(&(p->payload[0])); break;
+                    case GAMEPAD:   process_gamepad(&(p->payload[0]), dev); break;
             }
             
 
