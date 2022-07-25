@@ -123,6 +123,7 @@ struct {
 
 } KB[MAX_DEVICES];
 
+
 struct {
     bool        connected;
     uint16_t    vendor_id;
