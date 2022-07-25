@@ -75,7 +75,9 @@ struct {
     bool DOWN_LEFT;
     bool LEFT;
     bool RIGHT;
-    bool CENTRE;
+    
+    bool D_DEAD;
+    bool B_DEAD;
 
     bool Y;
     bool A;
@@ -178,43 +180,14 @@ int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 
 void process_strikes(uint8_t* new_keys, uint8_t port) {
          
+         
+         KB[port].control_keys = new_keys[0];
          for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
             
             if (new_keys[i] == KEY_CAPSLOCK) {
                 KB[port].caps = !KB[port].caps;
                 return;
             }
-
-            #ifdef DEBUG_PACKETS
-            if (new_keys[i] == 0x18) {
-                
-                printf("\n\nUSB REPORT:\n\n");
-                printf("\n\nUSB Endpoint 0:\n");
-                printf("Connected? %s\n", USB_DEVICE[0].connected?"Y":"N");
-                printf("VID 0x%04x, PID 0x%04x\n", USB_DEVICE[0].vendor_id, USB_DEVICE[0].product_id);
-                printf("Type 0x%02x\n", USB_DEVICE[0].dev_type);
-                printf("\n");
-                printf("\n\nUSB Endpoint 1:\n");
-                printf("Connected? %s\n", USB_DEVICE[1].connected?"Y":"N");
-                printf("VID 0x%04x, PID 0x%04x\n", USB_DEVICE[1].vendor_id, USB_DEVICE[1].product_id);
-                printf("Type 0x%02x\n", USB_DEVICE[1].dev_type);
-                printf("\n");
-
-            }
-            #endif
-            // if (keyboard_cap == false) {
-            //     if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
-            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
-            //     } else {
-            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
-            //     }
-            // } else {
-            //     if ((isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
-            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_lower[new_keys[i]]);
-            //     } else {
-            //         if (!checkarray(new_keys[i], last_ingest, 8)) fctprintf(mcSendDevice, &duart_a, "%c", keys_upper[new_keys[i]]);
-            //     }
-            // }
 
             if ((KB[port].caps) || (isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
                 if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];
@@ -235,24 +208,31 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         uint8_t dpad = new_pad[2];
         uint8_t apad = new_pad[3];
 
-        PAD[port].CENTRE =      (dpad == 8) ? true : false;
-        PAD[port].UP =          (dpad == 0) ? true : false;
-        PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
-        PAD[port].RIGHT =       (dpad == 2) ? true : false;
-        PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
-        PAD[port].DOWN =        (dpad == 4) ? true : false;
-        PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
-        PAD[port].LEFT =        (dpad == 6) ? true : false;
-        PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
+        if (dpad == 8) PAD[port].D_DEAD = true;
+        else {
+            PAD[port].D_DEAD = false;
+            PAD[port].UP =          (dpad == 0) ? true : false;
+            PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
+            PAD[port].RIGHT =       (dpad == 2) ? true : false;
+            PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
+            PAD[port].DOWN =        (dpad == 4) ? true : false;
+            PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
+            PAD[port].LEFT =        (dpad == 6) ? true : false;
+            PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
+        }
 
-        PAD[port].A =       (apad == 0x01) ? true : false;
-        PAD[port].B =       (apad == 0x02) ? true : false;
-        PAD[port].X =       (apad == 0x04) ? true : false;
-        PAD[port].Y =       (apad == 0x08) ? true : false;
-        PAD[port].LT =      (apad == 0x10) ? true : false;
-        PAD[port].RT =      (apad == 0x20) ? true : false;
-        PAD[port].LS =      (apad == 0x40) ? true : false;
-        PAD[port].RS =      (apad == 0x80) ? true : false;
+        if (apad == 0x00) PAD[port].B_DEAD = true;
+        else {
+            PAD[port].B_DEAD = false;
+            PAD[port].A =       (apad == 0x01) ? true : false;
+            PAD[port].B =       (apad == 0x02) ? true : false;
+            PAD[port].X =       (apad == 0x04) ? true : false;
+            PAD[port].Y =       (apad == 0x08) ? true : false;
+            PAD[port].LT =      (apad == 0x10) ? true : false;
+            PAD[port].RT =      (apad == 0x20) ? true : false;
+            PAD[port].LS =      (apad == 0x40) ? true : false;
+            PAD[port].RS =      (apad == 0x80) ? true : false;
+        }
 
         PAD[port].pending = true;
     }
