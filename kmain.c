@@ -44,7 +44,7 @@
 #define TYPE_GAMEPAD	    0x05
 #define TYPE_KEYBOARD	    0x06
 
-#define MAX_DEVICES         2
+#define MAX_DEVICES         8
 
 typedef enum {
     STATE_DISCARD,
@@ -280,37 +280,37 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
 
 void process_final_packet(FinalPacket *p) {
         
-    uint8_t dev = p->endpoint;
+    uint8_t dev = p->device;
 
     DEBUGX("\nFinal packet of type 0x%02x received from port %d\n", p->message_type, dev);
 
-        if (p->message_type == USB_MSG_CONNECT) {        
-            DEBUGX("\nDevice # %d connected, awaiting device info\n",dev);
-            USB_DEVICE[dev].connected = true;
-        }
+        // if (p->message_type == USB_MSG_CONNECT) {        
+        //     DEBUGX("\nDevice # %d connected, awaiting device info\n",dev);
+        //     USB_DEVICE[dev].connected = true;
+        // }
 
-        if ((p->message_type == USB_MSG_DESCRIPTOR)) {
-            USB_DEVICE[dev].connected = true;
-            if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
-                USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
-                USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
-                DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
-            }
+        // if ((p->message_type == USB_MSG_DESCRIPTOR)) {
+        //     USB_DEVICE[dev].connected = true;
+        //     if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
+        //         USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+        //         USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
+        //         DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
+        //     }
             
-            #ifdef DEBUG_PACKETS
-                else DEBUGX("I think I've already announced this device?\n");
-            #endif
-        }
+        //     #ifdef DEBUG_PACKETS
+        //         else DEBUGX("I think I've already announced this device?\n");
+        //     #endif
+        // }
 
-        else if (p->message_type == USB_MSG_DISCONNECT) {
+        // else if (p->message_type == USB_MSG_DISCONNECT) {
             
-            USB_DEVICE[dev].connected=false;
-            USB_DEVICE[dev].vendor_id=0xFFFF;
-            USB_DEVICE[dev].product_id=0xFFFF;
-            USB_DEVICE[dev].dev_type=UNKNOWN;
-            DEBUGX("Device # %d disconnected\n", dev);
+        //     USB_DEVICE[dev].connected=false;
+        //     USB_DEVICE[dev].vendor_id=0xFFFF;
+        //     USB_DEVICE[dev].product_id=0xFFFF;
+        //     USB_DEVICE[dev].dev_type=UNKNOWN;
+        //     DEBUGX("Device # %d disconnected\n", dev);
 
-        }
+        // }
 
         else if (p->message_type == USB_MSG_REPORT) {
 
