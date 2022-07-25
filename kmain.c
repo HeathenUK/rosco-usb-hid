@@ -498,23 +498,7 @@ void kmain() {
         install_interrupt(&duart_b);
 
         printf("Interrupt handler installed\n");
-//         //mcDisableInterrupts();
-// //        printf("\033*");
-//         fctprintf(mcSendDevice, duart_b, "AT\r\n");
-// //        delay(500000);
-// //        printf("\f");
-//         fctprintf(mcSendDevice, duart_b, "AT+RST\r\n");
-//         delay(500000);
-//         fctprintf(mcSendDevice, duart_b, "AT+GMR\r\n");
-//         #ifdef U_DEBUG
-//             print("\x1b[8m");
-//         #endif
-        delay(100000);
-//        printf("\f");
-        //fctprintf(mcSendDevice, duart_b, "AT+CIPRECVMODE=1\r\n");
-        //printf("Going to telnet prompt\n");
 
-        //CHAR_DEVICE *duart_a = mcGetDevice(0);
         CharDevice duart_a;
         if (mcGetDevice(0, &duart_a)) {
         fctprintf(mcSendDevice, &duart_a, "\f");
@@ -530,15 +514,15 @@ void kmain() {
             USB_DEVICE[i].dev_type=UNKNOWN;
     
         }
-      while (true) {            
-            
-            //Main loop - go until input is provided (do other things in here)
-            while ((!PAD[0].pending) && (!PAD[1].pending && (!KB[0].pending)) && (!KB[1].pending)) {
-                process_incoming(&state);
-                #ifdef DEBUG_HEARTBEAT        
-                    fctprintf(mcSendDevice, &duart_a, "*");
-                #endif
-            }
+    while (true) {            
+        
+        //Main loop - go until input is provided (do other things in here)
+        while ((!PAD[0].pending) && (!PAD[1].pending && (!KB[0].pending)) && (!KB[1].pending)) {
+            process_incoming(&state);
+            #ifdef DEBUG_HEARTBEAT        
+                fctprintf(mcSendDevice, &duart_a, "*");
+            #endif
+        }
 
     //Once input has been flagged up, check it, service it, and then return to the main loop.  
     for (i == 0; i < 2; i++) {
