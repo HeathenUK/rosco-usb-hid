@@ -254,7 +254,7 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
 
         }
 
-        if (xbut == 0 || apad == 0) PAD[port].B_DEAD = true;
+        if (xbut == 0 && apad == 0) PAD[port].B_DEAD = true;
         else {
            
             PAD[port].A =           (apad == 2) ? true : false;
