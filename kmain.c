@@ -104,6 +104,7 @@ struct {
     char key4;
     char key5;
     char key6;
+    uint8_t control_keys;
     bool caps;
 
 } KB[MAX_DEVICES];
