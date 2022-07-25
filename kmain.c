@@ -75,6 +75,7 @@ struct {
     bool DOWN_LEFT;
     bool LEFT;
     bool RIGHT;
+    bool CENTRE;
 
     bool Y;
     bool A;
@@ -228,10 +229,15 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         uint8_t dpad = new_pad[2];
         uint8_t apad = new_pad[3];
 
-        PAD[port].UP =      (dpad == 0x00) ? true : false;
-        PAD[port].RIGHT =   (dpad == 0x02) ? true : false;
-        PAD[port].DOWN =    (dpad == 0x04) ? true : false;
-        PAD[port].LEFT =    (dpad == 0x06) ? true : false;
+        PAD[port].CENTRE =      (dpad == 8) ? true : false;
+        PAD[port].UP =          (dpad == 0) ? true : false;
+        PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
+        PAD[port].RIGHT =       (dpad == 2) ? true : false;
+        PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
+        PAD[port].DOWN =        (dpad == 4) ? true : false;
+        PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
+        PAD[port].LEFT =        (dpad == 6) ? true : false;
+        PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
 
         PAD[port].A =       (apad == 0x01) ? true : false;
         PAD[port].B =       (apad == 0x02) ? true : false;
@@ -250,6 +256,7 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         uint8_t apad = new_pad[5] >> 4;
         uint8_t xbut = new_pad[6];
 
+        PAD[port].CENTRE =      (dpad == 8) ? true : false;
         PAD[port].UP =          (dpad == 0) ? true : false;
         PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
         PAD[port].RIGHT =       (dpad == 2) ? true : false;
