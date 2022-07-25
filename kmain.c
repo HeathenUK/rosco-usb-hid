@@ -180,21 +180,20 @@ int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 
 void process_strikes(uint8_t* new_keys, uint8_t port) {
          
-         
-         KB[port].control_keys = new_keys[0];
-         for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
-            
-            if (new_keys[i] == KEY_CAPSLOCK) {
-                KB[port].caps = !KB[port].caps;
-                return;
-            }
-
-            if ((KB[port].caps) || (isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
-                if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];
-            } else {
-                if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_lower[new_keys[i]];
-            }
+    KB[port].control_keys = new_keys[0];
+    for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
+        
+        if (new_keys[i] == KEY_CAPSLOCK) {
+            KB[port].caps = !KB[port].caps;
+            return;
         }
+
+        if ((KB[port].caps) || (isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
+            if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];
+        } else {
+            if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_lower[new_keys[i]];
+        }
+    }
     //printf("%c registered\n", KB[port].key);
     KB[port].pending = true;
     memcpy(last_ingest, new_keys, 8);
@@ -242,32 +241,36 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         uint8_t apad = new_pad[5] >> 4;
         uint8_t xbut = new_pad[6];
 
-        PAD[port].CENTRE =      (dpad == 8) ? true : false;
-        PAD[port].UP =          (dpad == 0) ? true : false;
-        PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
-        PAD[port].RIGHT =       (dpad == 2) ? true : false;
-        PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
-        PAD[port].DOWN =        (dpad == 4) ? true : false;
-        PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
-        PAD[port].LEFT =        (dpad == 6) ? true : false;
-        PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
+        if (dpad == 8) PAD[port].D_DEAD = true;
+        else {
+            PAD[port].UP =          (dpad == 0) ? true : false;
+            PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
+            PAD[port].RIGHT =       (dpad == 2) ? true : false;
+            PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
+            PAD[port].DOWN =        (dpad == 4) ? true : false;
+            PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
+            PAD[port].LEFT =        (dpad == 6) ? true : false;
+            PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
 
-        PAD[port].A =           (apad == 2) ? true : false;
-        PAD[port].B =           (apad == 4) ? true : false;
-        PAD[port].X =           (apad == 1) ? true : false;
-        PAD[port].Y =           (apad == 8) ? true : false;
-        
-        PAD[port].LT =          (xbut == 1) ? true : false;
-        PAD[port].RT =          (xbut == 2) ? true : false;
+        }
 
-        PAD[port].L2 =          (xbut == 4) ? true : false;
-        PAD[port].R2 =          (xbut == 8) ? true : false;
-
-        PAD[port].LS =          (xbut == 64) ? true : false;
-        PAD[port].RS =          (xbut == 128) ? true : false;
-
-        PAD[port].START =       (xbut == 32) ? true : false;
-        PAD[port].SELECT =      (xbut == 16) ? true : false;
+        if (xbut == 0 || apad == 0) PAD[port].B_DEAD = true;
+        else {
+           
+            PAD[port].A =           (apad == 2) ? true : false;
+            PAD[port].B =           (apad == 4) ? true : false;
+            PAD[port].X =           (apad == 1) ? true : false;
+            PAD[port].Y =           (apad == 8) ? true : false;
+            
+            AD[port].LT =          (xbut == 1) ? true : false;
+            PAD[port].RT =          (xbut == 2) ? true : false;
+            PAD[port].L2 =          (xbut == 4) ? true : false;
+            PAD[port].R2 =          (xbut == 8) ? true : false;
+            PAD[port].LS =          (xbut == 64) ? true : false;
+            PAD[port].RS =          (xbut == 128) ? true : false;
+            PAD[port].START =       (xbut == 32) ? true : false;
+            PAD[port].SELECT =      (xbut == 16) ? true : false;
+        }
 
         PAD[port].pending = true;
 
@@ -538,69 +541,76 @@ void kmain() {
             }
 
     //Once input has been flagged up, check it, service it, and then return to the main loop.  
-    if (PAD[0].pending) {
-        PAD[0].pending = false;
-        if         (PAD[0].UP) printf("0: Up\n");
-        else if    (PAD[0].DOWN) printf("0: Down\n");
-        else if    (PAD[0].LEFT) printf("0: Left\n");
-        else if    (PAD[0].RIGHT) printf("0: Right\n");
-         
-        else if    (PAD[0].A) printf("0: A\n");
-        else if    (PAD[0].B) printf("0: B\n");
-        else if    (PAD[0].X) printf("0: X\n");
-        else if    (PAD[0].Y) printf("0: Y\n");
-         
-        else if    (PAD[0].LT) printf("0: Left Trigger\n");
-        else if    (PAD[0].L2) printf("0: Left Trigger 2\n");
-        else if    (PAD[0].RT) printf("0: Right Trigger\n");
-        else if    (PAD[0].R2) printf("0: Right Trigger 2\n");
+    for (i == 0; i < 2; i++) {
+        if (PAD[i].pending) {
+            PAD[i].pending = false;
+            if (!PAD[i].D_DEAD) {
+                if         (PAD[i].UP) printf("%d: Up\n", i);
+                else if    (PAD[i].UP_RIGHT) printf("%d: Up-right\n", i);
+                else if    (PAD[i].UP_LEFT) printf("%d: Up-left\n", i);
+                else if    (PAD[i].DOWN) printf("%d: Down\n", i);
+                else if    (PAD[i].DOWN_RIGHT) printf("%d: Down-right\n", i);
+                else if    (PAD[i].DOWN_LEFT) printf("%d: Down-left\n", i);
+                else if    (PAD[i].LEFT) printf("%d: Left\n", i);
+                else if    (PAD[i].RIGHT) printf("%d: Right\n", i);
+            } 
+            if (!PAD[i].B_DEAD) {
+                if         (PAD[i].A) printf("%d: A\n", i);
+                else if    (PAD[i].B) printf("%d: B\n", i);
+                else if    (PAD[i].X) printf("%d: X\n", i);
+                else if    (PAD[i].Y) printf("%d: Y\n", i);
+            }            
+                else if    (PAD[i].LT) printf("%d: Left Trigger\n", i);
+                else if    (PAD[i].L2) printf("%d: Left Trigger 2\n", i);
+                else if    (PAD[i].RT) printf("%d: Right Trigger\n", i);
+                else if    (PAD[i].R2) printf("%d: Right Trigger 2\n", i);
 
-        else if    (PAD[0].LS) printf("0: Left Stick\n");
-        else if    (PAD[0].RS) printf("0: Right Stick\n");
+                else if    (PAD[i].LS) printf("%d: Left Stick\n", i);
+                else if    (PAD[i].RS) printf("%d: Right Stick\n", i);
 
-        else if    (PAD[0].START) printf("0: Start\n");
-        else if    (PAD[0].SELECT) printf("0: Select\n");
+                else if    (PAD[i].START) printf("%d: Start\n", i);
+                else if    (PAD[i].SELECT) printf("%d: Select\n", i);
 
-    }
-    if (PAD[1].pending) {
-        PAD[1].pending = false;
-        if         (PAD[1].UP) printf("1: Up\n");
-        else if    (PAD[1].DOWN) printf("1: Down\n");
-        else if    (PAD[1].LEFT) printf("1: Left\n");
-        else if    (PAD[1].RIGHT) printf("1: Right\n");
-         
-        else if    (PAD[1].A) printf("1: A\n");
-        else if    (PAD[1].B) printf("1: B\n");
-        else if    (PAD[1].X) printf("1: X\n");
-        else if    (PAD[1].Y) printf("1: Y\n");
-         
-        else if    (PAD[1].LT) printf("1: Left Trigger\n");
-        else if    (PAD[1].L2) printf("1: Left Trigger 2\n");
-
-        else if    (PAD[1].RT) printf("1: Right Trigger\n");
-        else if    (PAD[1].R2) printf("1: Right Trigger 2\n");
-
-        else if    (PAD[1].LS) printf("1: Left Stick\n");
-        else if    (PAD[1].RS) printf("1: Right Stick\n");
-
-        else if    (PAD[1].START) printf("1: Start\n");
-        else if    (PAD[1].SELECT) printf("1: Select\n");
-    }
-    
-    if (KB[0].pending) {
-        KB[0].pending = false;
-        printf("%c", KB[0].key);
-        KB[0].key = 0x00;
-    }            
-    
-    if (KB[1].pending) {
-        KB[1].pending = false;
-        printf("%c", KB[1].key);
-        KB[1].key = 0x00;
-    }
-      
         }
-        }
+        // if (PAD[1].pending) {
+        //     PAD[1].pending = false;
+        //     if         (PAD[1].UP) printf("1: Up\n");
+        //     else if    (PAD[1].DOWN) printf("1: Down\n");
+        //     else if    (PAD[1].LEFT) printf("1: Left\n");
+        //     else if    (PAD[1].RIGHT) printf("1: Right\n");
+            
+        //     else if    (PAD[1].A) printf("1: A\n");
+        //     else if    (PAD[1].B) printf("1: B\n");
+        //     else if    (PAD[1].X) printf("1: X\n");
+        //     else if    (PAD[1].Y) printf("1: Y\n");
+            
+        //     else if    (PAD[1].LT) printf("1: Left Trigger\n");
+        //     else if    (PAD[1].L2) printf("1: Left Trigger 2\n");
+
+        //     else if    (PAD[1].RT) printf("1: Right Trigger\n");
+        //     else if    (PAD[1].R2) printf("1: Right Trigger 2\n");
+
+        //     else if    (PAD[1].LS) printf("1: Left Stick\n");
+        //     else if    (PAD[1].RS) printf("1: Right Stick\n");
+
+        //     else if    (PAD[1].START) printf("1: Start\n");
+        //     else if    (PAD[1].SELECT) printf("1: Select\n");
+        // }
+        
+        if (KB[i].pending) {
+            KB[i].pending = false;
+            printf("%c", KB[i].key);
+            KB[i].key = 0x00;
+        }            
+        
+        // if (KB[1].pending) {
+        //     KB[1].pending = false;
+        //     printf("%c", KB[1].key);
+        //     KB[1].key = 0x00;
+        // }
+        } 
+    }
+    }
     } else {
         printf("No character device support detected\n");
     }
