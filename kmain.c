@@ -113,6 +113,7 @@ struct {
 
 struct {
     bool        connected;
+    bool        registered;
     uint16_t    vendor_id;
     uint16_t    product_id;
     DEV_TYPE    dev_type;
@@ -262,7 +263,7 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
             PAD[port].X =           (apad == 1) ? true : false;
             PAD[port].Y =           (apad == 8) ? true : false;
             
-            AD[port].LT =          (xbut == 1) ? true : false;
+            PAD[port].LT =          (xbut == 1) ? true : false;
             PAD[port].RT =          (xbut == 2) ? true : false;
             PAD[port].L2 =          (xbut == 4) ? true : false;
             PAD[port].R2 =          (xbut == 8) ? true : false;
@@ -282,7 +283,7 @@ void process_final_packet(FinalPacket *p) {
         
     uint8_t dev = p->device;
 
-    DEBUGX("\nFinal packet of type 0x%02x received from port %d\n", p->message_type, dev);
+    DEBUGX("\nFinal packet of type 0x%02x received from device %d\n", p->message_type, dev);
 
         // if (p->message_type == USB_MSG_CONNECT) {        
         //     DEBUGX("\nDevice # %d connected, awaiting device info\n",dev);
@@ -314,24 +315,28 @@ void process_final_packet(FinalPacket *p) {
 
         else if (p->message_type == USB_MSG_REPORT) {
 
-            USB_DEVICE[dev].connected = true;
-            if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
-                USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
-                USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
-                DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
-            }
+            if (!USB_DEVICE[dev].registered)  {
+                USB_DEVICE[dev].connected = true;
+                if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
+                    USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+                    USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
+                    DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
+                }
 
-            if (USB_DEVICE[dev].dev_type == UNKNOWN) {
-                
-                switch (p->type) {
+                if (USB_DEVICE[dev].dev_type == UNKNOWN) {
+                    
+                    switch (p->type) {
 
-                    case TYPE_GAMEPAD: USB_DEVICE[dev].dev_type =  GAMEPAD; break;
-                    case TYPE_MOUSE: USB_DEVICE[dev].dev_type =    MOUSE; break;
-                    case TYPE_KEYBOARD: USB_DEVICE[dev].dev_type = KEYBOARD; break;
-                    case TYPE_JOYSTICK: USB_DEVICE[dev].dev_type = JOYSTICK; break;
+                        case TYPE_GAMEPAD: USB_DEVICE[dev].dev_type =  GAMEPAD; break;
+                        case TYPE_MOUSE: USB_DEVICE[dev].dev_type =    MOUSE; break;
+                        case TYPE_KEYBOARD: USB_DEVICE[dev].dev_type = KEYBOARD; break;
+                        case TYPE_JOYSTICK: USB_DEVICE[dev].dev_type = JOYSTICK; break;
+
+                    }
 
                 }
 
+                USB_DEVICE[dev].registered == true;
             }
 
             switch (USB_DEVICE[dev].dev_type) {
@@ -342,6 +347,7 @@ void process_final_packet(FinalPacket *p) {
                     case KEYBOARD:  process_strikes(&(p->payload[0]), dev); break; 
                     case GAMEPAD:   process_gamepad(&(p->payload[0]), dev, USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id); break;
             }
+
             
 
             // if ((p->id_product_lo == 0x14) && (p->id_product_hi == 0x72)) {
@@ -543,7 +549,7 @@ void kmain() {
                 else if    (PAD[i].B) printf("%d: B\n", i);
                 else if    (PAD[i].X) printf("%d: X\n", i);
                 else if    (PAD[i].Y) printf("%d: Y\n", i);
-            }            
+                        
                 else if    (PAD[i].LT) printf("%d: Left Trigger\n", i);
                 else if    (PAD[i].L2) printf("%d: Left Trigger 2\n", i);
                 else if    (PAD[i].RT) printf("%d: Right Trigger\n", i);
@@ -554,7 +560,7 @@ void kmain() {
 
                 else if    (PAD[i].START) printf("%d: Start\n", i);
                 else if    (PAD[i].SELECT) printf("%d: Select\n", i);
-
+            }
         }
         // if (PAD[1].pending) {
         //     PAD[1].pending = false;
