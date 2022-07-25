@@ -99,6 +99,11 @@ struct {
 struct {
     bool pending;
     char key;
+    char key2;
+    char key3;
+    char key4;
+    char key5;
+    char key6;
     bool caps;
 
 } KB[MAX_DEVICES];
