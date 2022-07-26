@@ -527,6 +527,20 @@ bool check_key(State *state) {
 
 }
 
+const char* ugets(State *state, uint16_t max_size) {
+
+    static char ugets_buffer[1024] = "";
+    memset(ugets_buffer,0,sizeof(ugets_buffer));
+    while (true) {
+        char new_key = read_key(state);
+        strncat(ugets_buffer, &new_key, 1);
+        if ((new_key == '\n') || (strlen(ugets_buffer) == (long unsigned int)(max_size - 1))) break;
+    }
+
+    return ugets_buffer;
+
+}
+
 //GAMEPAD FUNCTIONS
 
 uint8_t pad_pending() {
@@ -595,78 +609,21 @@ void kmain() {
 
     while (true) {            
         
-        if (check_pad(&state)) {
-            BUTTONS latest = read_pad(&state);
-            printf("%u ", latest.dpad);
-            printf("%u ", latest.apad);
-            printf("%u\n", latest.xpad);
-        }
 
-        if (check_key(&state)) {
-
-            printf("%c", read_key(&state));
-
-        }
-
-        //printf("%c", read_key(&state));
-        // printf("\nWe had a key!\n");
-
-        
-        //Main loop - go until input is provided (do other things in here)
-        // while ((kb_pending() == 0)) {
-        //     process_incoming(&state);
-        //     #ifdef DEBUG_HEARTBEAT        
-        //         if (mcGetDevice(0, &duart_a)) fctprintf(mcSendDevice, &duart_a, "*");
-        //     #endif
+        printf("String: %s", ugets(&state, 50));
+        // if (check_pad(&state)) {
+        //     BUTTONS latest = read_pad(&state);
+        //     printf("%u ", latest.dpad);
+        //     printf("%u ", latest.apad);
+        //     printf("%u\n", latest.xpad);
         // }
 
-    // //Once input has been flagged up, check it, service it, and then return to the main loop.  
-    
-    // for (int i = 0; i < MAX_DEVICES; i++) {
-    //     // if (PAD[i].pending) {
-    //     //     PAD[i].pending = false;
-    //     //     if (PAD[i].dpad) {
+        // if (check_key(&state)) {
 
-    //     //         printf("%d\n", PAD[i].dpad);
+        //     printf("%c", read_key(&state));
 
-    //     //     }
-    //     // }
-    //     //     if (!PAD[i].D_DEAD) {
-    //     //         if         (PAD[i].UP) printf("%d: Up\n", i);
-    //     //         else if    (PAD[i].UP_RIGHT) printf("%d: Up-right\n", i);
-    //     //         else if    (PAD[i].UP_LEFT) printf("%d: Up-left\n", i);
-    //     //         else if    (PAD[i].DOWN) printf("%d: Down\n", i);
-    //     //         else if    (PAD[i].DOWN_RIGHT) printf("%d: Down-right\n", i);
-    //     //         else if    (PAD[i].DOWN_LEFT) printf("%d: Down-left\n", i);
-    //     //         else if    (PAD[i].LEFT) printf("%d: Left\n", i);
-    //     //         else if    (PAD[i].RIGHT) printf("%d: Right\n", i);
-    //     //     } 
-    //     //     if (!PAD[i].B_DEAD) {
-    //     //         if         (PAD[i].A) printf("%d: A\n", i);
-    //     //         else if    (PAD[i].B) printf("%d: B\n", i);
-    //     //         else if    (PAD[i].X) printf("%d: X\n", i);
-    //     //         else if    (PAD[i].Y) printf("%d: Y\n", i);
-                        
-    //     //         else if    (PAD[i].LT) printf("%d: Left Trigger\n", i);
-    //     //         else if    (PAD[i].L2) printf("%d: Left Trigger 2\n", i);
-    //     //         else if    (PAD[i].RT) printf("%d: Right Trigger\n", i);
-    //     //         else if    (PAD[i].R2) printf("%d: Right Trigger 2\n", i);
+        // }
 
-    //     //         else if    (PAD[i].LS) printf("%d: Left Stick\n", i);
-    //     //         else if    (PAD[i].RS) printf("%d: Right Stick\n", i);
-
-    //     //         else if    (PAD[i].START) printf("%d: Start\n", i);
-    //     //         else if    (PAD[i].SELECT) printf("%d: Select\n", i);
-    //     //     }
-    //     // }
-        
-        // if (KB[i].pending) {
-        //     KB[i].pending = false;
-        //     printf("%c", KB[i].key);
-        //     KB[i].key = 0x00;
-        // }            
-        
-       //} 
     }
 }
 
