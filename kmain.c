@@ -113,7 +113,6 @@ struct {
 
 struct {
     bool        connected;
-    bool        registered;
     uint16_t    vendor_id;
     uint16_t    product_id;
     DEV_TYPE    dev_type;
@@ -208,7 +207,16 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         uint8_t dpad = new_pad[2];
         uint8_t apad = new_pad[3];
 
-        if (dpad == 8) PAD[port].D_DEAD = true;
+        if (dpad == 8) {
+            PAD[port].D_DEAD = true;
+            PAD[port].UP =          false;
+            PAD[port].UP_RIGHT =    false;
+            PAD[port].RIGHT =       false;
+            PAD[port].DOWN_RIGHT =  false;
+            PAD[port].DOWN =        false;
+            PAD[port].DOWN_LEFT =   false;
+            PAD[port].LEFT =        false;
+            PAD[port].UP_LEFT =     false;
         else {
             PAD[port].D_DEAD = false;
             PAD[port].UP =          (dpad == 0) ? true : false;
@@ -242,8 +250,17 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         uint8_t apad = new_pad[5] >> 4;
         uint8_t xbut = new_pad[6];
 
-        if (dpad == 8) PAD[port].D_DEAD = true;
-        else {
+        if (dpad == 8) {
+            PAD[port].D_DEAD = true;
+            PAD[port].UP =          false;
+            PAD[port].UP_RIGHT =    false;
+            PAD[port].RIGHT =       false;
+            PAD[port].DOWN_RIGHT =  false;
+            PAD[port].DOWN =        false;
+            PAD[port].DOWN_LEFT =   false;
+            PAD[port].LEFT =        false;
+            PAD[port].UP_LEFT =     false;
+        } else {
             PAD[port].UP =          (dpad == 0) ? true : false;
             PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
             PAD[port].RIGHT =       (dpad == 2) ? true : false;
@@ -255,9 +272,22 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
 
         }
 
-        if (xbut == 0 && apad == 0) PAD[port].B_DEAD = true;
+        if (xbut == 0 && apad == 0) {
+            PAD[port].B_DEAD =      true;
+            PAD[port].A =           false;
+            PAD[port].B =           false;
+            PAD[port].X =           false;
+            PAD[port].Y =           false;
+            
+            PAD[port].LT =          false;
+            PAD[port].RT =          false;
+            PAD[port].L2 =          false;
+            PAD[port].R2 =          false;
+            PAD[port].LS =          false;
+            PAD[port].RS =          false;
+            PAD[port].START =       false;
+            PAD[port].SELECT =      false;
         else {
-           
             PAD[port].A =           (apad == 2) ? true : false;
             PAD[port].B =           (apad == 4) ? true : false;
             PAD[port].X =           (apad == 1) ? true : false;
@@ -273,10 +303,12 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
             PAD[port].SELECT =      (xbut == 16) ? true : false;
         }
 
-        PAD[port].pending = true;
+        }  
+
+    PAD[port].pending = true;
 
     }
-
+    }
 }
 
 void process_final_packet(FinalPacket *p) {
@@ -313,50 +345,40 @@ void process_final_packet(FinalPacket *p) {
 
         // }
 
-        else if (p->message_type == USB_MSG_REPORT) {
+        if (p->message_type == USB_MSG_REPORT) {
 
-            if (!USB_DEVICE[dev].registered)  {
-                USB_DEVICE[dev].connected = true;
-                if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
-                    USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
-                    USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
-                    DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
-                }
+            if (USB_DEVICE[dev].vendor_id == 0xFFFF) {
+                USB_DEVICE[dev].vendor_id = p->id_vendor_lo | p->id_vendor_hi << 8;
+                USB_DEVICE[dev].product_id = p->id_product_lo | p->id_product_hi << 8;
+                DEBUGX("Vendor ID 0x%04x, Product ID 0x%04x connected.\n", USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id);
+            }
 
-                if (USB_DEVICE[dev].dev_type == UNKNOWN) {
-                    
-                    switch (p->type) {
+            if (USB_DEVICE[dev].dev_type == UNKNOWN) {
+                
+                switch (p->type) {
 
-                        case TYPE_GAMEPAD: USB_DEVICE[dev].dev_type =  GAMEPAD; break;
-                        case TYPE_MOUSE: USB_DEVICE[dev].dev_type =    MOUSE; break;
-                        case TYPE_KEYBOARD: USB_DEVICE[dev].dev_type = KEYBOARD; break;
-                        case TYPE_JOYSTICK: USB_DEVICE[dev].dev_type = JOYSTICK; break;
-
-                    }
+                    case TYPE_GAMEPAD: USB_DEVICE[dev].dev_type =  GAMEPAD; break;
+                    case TYPE_MOUSE: USB_DEVICE[dev].dev_type =    MOUSE; break;
+                    case TYPE_KEYBOARD: USB_DEVICE[dev].dev_type = KEYBOARD; break;
+                    case TYPE_JOYSTICK: USB_DEVICE[dev].dev_type = JOYSTICK; break;
 
                 }
 
-                USB_DEVICE[dev].registered == true;
             }
-
-            switch (USB_DEVICE[dev].dev_type) {
-
-                    case UNKNOWN: break;
-                    case MOUSE: break;
-                    case JOYSTICK: break;
-                    case KEYBOARD:  process_strikes(&(p->payload[0]), dev); break; 
-                    case GAMEPAD:   process_gamepad(&(p->payload[0]), dev, USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id); break;
-            }
-
             
+        }
 
-            // if ((p->id_product_lo == 0x14) && (p->id_product_hi == 0x72)) {
-            //     process_gamepad(&(p->payload[0]));
-            // } else process_strikes(&(p->payload[0]));
+        switch (USB_DEVICE[dev].dev_type) {
 
+                case UNKNOWN: break;
+                case MOUSE: break;
+                case JOYSTICK: break;
+                case KEYBOARD:  process_strikes(&(p->payload[0]), dev); break; 
+                case GAMEPAD:   process_gamepad(&(p->payload[0]), dev, USB_DEVICE[dev].vendor_id, USB_DEVICE[dev].product_id); break;
         }
 
 }
+
 
 
 void process_raw_packet(uint8_t *raw_packet) {        
@@ -562,30 +584,6 @@ void kmain() {
                 else if    (PAD[i].SELECT) printf("%d: Select\n", i);
             }
         }
-        // if (PAD[1].pending) {
-        //     PAD[1].pending = false;
-        //     if         (PAD[1].UP) printf("1: Up\n");
-        //     else if    (PAD[1].DOWN) printf("1: Down\n");
-        //     else if    (PAD[1].LEFT) printf("1: Left\n");
-        //     else if    (PAD[1].RIGHT) printf("1: Right\n");
-            
-        //     else if    (PAD[1].A) printf("1: A\n");
-        //     else if    (PAD[1].B) printf("1: B\n");
-        //     else if    (PAD[1].X) printf("1: X\n");
-        //     else if    (PAD[1].Y) printf("1: Y\n");
-            
-        //     else if    (PAD[1].LT) printf("1: Left Trigger\n");
-        //     else if    (PAD[1].L2) printf("1: Left Trigger 2\n");
-
-        //     else if    (PAD[1].RT) printf("1: Right Trigger\n");
-        //     else if    (PAD[1].R2) printf("1: Right Trigger 2\n");
-
-        //     else if    (PAD[1].LS) printf("1: Left Stick\n");
-        //     else if    (PAD[1].RS) printf("1: Right Stick\n");
-
-        //     else if    (PAD[1].START) printf("1: Start\n");
-        //     else if    (PAD[1].SELECT) printf("1: Select\n");
-        // }
         
         if (KB[i].pending) {
             KB[i].pending = false;
@@ -593,11 +591,6 @@ void kmain() {
             KB[i].key = 0x00;
         }            
         
-        // if (KB[1].pending) {
-        //     KB[1].pending = false;
-        //     printf("%c", KB[1].key);
-        //     KB[1].key = 0x00;
-        // }
         } 
     }
     }
