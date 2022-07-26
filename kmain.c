@@ -29,6 +29,16 @@
 
 #define KEY_CAPSLOCK 0x39
 
+#define DIR_DEAD        8
+#define DIR_UP          0
+#define DIR_UP_RIGHT    1
+#define DIR_RIGHT       2
+#define DIR_DOWN_RIGHT  3
+#define DIR_DOWN        4
+#define DIR_DOWN_LEFT   5
+#define DIR_LEFT        6
+#define DIR_UP_LEFT     7
+
 #define USB_MSG_CONNECT     0x01
 #define USB_MSG_DISCONNECT  0x02
 #define USB_MSG_ERROR       0x03
@@ -559,6 +569,19 @@ bool check_pad(State *state) {
 
 }
 
+void init_usb() {
+
+    for (int i = 0; i < MAX_DEVICES; i++) {
+
+        USB_DEVICE[i].connected=false;
+        USB_DEVICE[i].vendor_id=0xFFFF;
+        USB_DEVICE[i].product_id=0xFFFF;
+        USB_DEVICE[i].dev_type=UNKNOWN;
+
+    }
+
+}
+
 void kmain() {
     printf("\033*");
     printf("\f");
@@ -573,14 +596,7 @@ void kmain() {
     State state;
     state.state = STATE_DISCARD;
 
-    for (int i = 0; i < MAX_DEVICES; i++) {
-
-        USB_DEVICE[i].connected=false;
-        USB_DEVICE[i].vendor_id=0xFFFF;
-        USB_DEVICE[i].product_id=0xFFFF;
-        USB_DEVICE[i].dev_type=UNKNOWN;
-
-    }
+    init_usb();
 
     while (true) {            
         
