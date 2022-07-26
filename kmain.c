@@ -11,7 +11,7 @@
 //#define U_DEBUG
 //#define DEBUG_PACKETS           // Define to dump some debug info
 //#define DEBUG_VERBOSE           // Define to dump more debug info (use along with DEBUG_PACKETS)
-#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
+//#define DEBUG_HEARTBEAT         // Define to print the heartbeat asterisks
 
 #ifdef DEBUG_PACKETS
 //#define DEBUGF(...) do { printf(__VA_ARGS__); } while (0)
@@ -66,35 +66,37 @@ typedef enum {
 
 struct {
     bool pending;
+    uint8_t dpad;
+    uint8_t apad;
+    uint8_t xpad;     
+    // bool UP;
+    // bool UP_RIGHT;
+    // bool UP_LEFT;
+    // bool DOWN;
+    // bool DOWN_RIGHT;
+    // bool DOWN_LEFT;
+    // bool LEFT;
+    // bool RIGHT;
     
-    bool UP;
-    bool UP_RIGHT;
-    bool UP_LEFT;
-    bool DOWN;
-    bool DOWN_RIGHT;
-    bool DOWN_LEFT;
-    bool LEFT;
-    bool RIGHT;
+    // bool D_DEAD;
+    // bool B_DEAD;
+
+    // bool Y;
+    // bool A;
+    // bool X;
+    // bool B;
     
-    bool D_DEAD;
-    bool B_DEAD;
+    // bool LT;
+    // bool RT;
 
-    bool Y;
-    bool A;
-    bool X;
-    bool B;
-    
-    bool LT;
-    bool RT;
+    // bool L2;
+    // bool R2;
 
-    bool L2;
-    bool R2;
+    // bool LS;
+    // bool RS;
 
-    bool LS;
-    bool RS;
-
-    bool START;
-    bool SELECT;
+    // bool START;
+    // bool SELECT;
 
 } PAD[MAX_DEVICES];
 
@@ -202,113 +204,82 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
 void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid) {
 
+    //D-Pad byte should always follow HAT order:
+        //UP = 0
+        //UP_RIGHT = 1
+        //RIGHT = 2
+        //DOWN_RIGHT = 3
+        //DOWN = 4
+        //DOWN_LEFT = 5
+        //LEFT = 6
+        //UP_LEFT = 7
+        //DEAD = 8
+    
+    //A-Pad byte should be mapped to follow:
+        //A = 1st bit
+        //B = 2nd bit
+        //X = 3rd bit
+        //Y = 4th bit
+        //L1 = 5th bit
+        //L2 = 6th bit
+        //Start = 7th bit
+        //Select = 8th bit
+
+    //X-Pad byte should be mapped to follow:
+        //L2 = 1st bit
+        //R2 = 2nd bit
+        //LS = 3rd bit
+        //RS = 4th bit
+        //TBC = 5th bit
+        //TBC = 6th bit
+        //TBC = 7th bit
+        //TBC = 8th bit
+
     //Nvidia Shield Controller Mapper
     if (vid == 0x0955 && pid == 0x7214) {
-        uint8_t dpad = new_pad[2];
-        uint8_t apad = new_pad[3];
 
-        if (dpad == 8) {
-            PAD[port].D_DEAD = true;
-            PAD[port].UP =          false;
-            PAD[port].UP_RIGHT =    false;
-            PAD[port].RIGHT =       false;
-            PAD[port].DOWN_RIGHT =  false;
-            PAD[port].DOWN =        false;
-            PAD[port].DOWN_LEFT =   false;
-            PAD[port].LEFT =        false;
-            PAD[port].UP_LEFT =     false;
-        else {
-            PAD[port].D_DEAD = false;
-            PAD[port].UP =          (dpad == 0) ? true : false;
-            PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
-            PAD[port].RIGHT =       (dpad == 2) ? true : false;
-            PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
-            PAD[port].DOWN =        (dpad == 4) ? true : false;
-            PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
-            PAD[port].LEFT =        (dpad == 6) ? true : false;
-            PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
-        }
-
-        if (apad == 0x00) PAD[port].B_DEAD = true;
-        else {
-            PAD[port].B_DEAD = false;
-            PAD[port].A =       (apad == 0x01) ? true : false;
-            PAD[port].B =       (apad == 0x02) ? true : false;
-            PAD[port].X =       (apad == 0x04) ? true : false;
-            PAD[port].Y =       (apad == 0x08) ? true : false;
-            PAD[port].LT =      (apad == 0x10) ? true : false;
-            PAD[port].RT =      (apad == 0x20) ? true : false;
-            PAD[port].LS =      (apad == 0x40) ? true : false;
-            PAD[port].RS =      (apad == 0x80) ? true : false;
-        }
+        PAD[port].dpad = new_pad[2]; //This pad respects HAT order, so take nibble directly.
+        PAD[port].apad = new_pad[3]; //Almost compliant, we will clobber LS and RS (bits 7 and 8) later.
+        PAD[port].xpad = 0;
+            
+//            PAD[port].LS =      (apad == 0x40) ? true : false;
+//            PAD[port].RS =      (apad == 0x80) ? true : false;
 
         PAD[port].pending = true;
     }
-    //DS4 Controller Mapper
+    //DS4 mapper
     else if ((vid == 0x054c) && ((pid == 0x05CC) || (pid == 0x09CC)) ) {
         uint8_t dpad = new_pad[5] & 0x0F;
         uint8_t apad = new_pad[5] >> 4;
-        uint8_t xbut = new_pad[6];
+        uint8_t xpad = new_pad[6];
 
-        if (dpad == 8) {
-            PAD[port].D_DEAD = true;
-            PAD[port].UP =          false;
-            PAD[port].UP_RIGHT =    false;
-            PAD[port].RIGHT =       false;
-            PAD[port].DOWN_RIGHT =  false;
-            PAD[port].DOWN =        false;
-            PAD[port].DOWN_LEFT =   false;
-            PAD[port].LEFT =        false;
-            PAD[port].UP_LEFT =     false;
-        } else {
-            PAD[port].UP =          (dpad == 0) ? true : false;
-            PAD[port].UP_RIGHT =    (dpad == 1) ? true : false;
-            PAD[port].RIGHT =       (dpad == 2) ? true : false;
-            PAD[port].DOWN_RIGHT =  (dpad == 3) ? true : false;
-            PAD[port].DOWN =        (dpad == 4) ? true : false;
-            PAD[port].DOWN_LEFT =   (dpad == 5) ? true : false;
-            PAD[port].LEFT =        (dpad == 6) ? true : false;
-            PAD[port].UP_LEFT =     (dpad == 7) ? true : false;
+        PAD[port].dpad = dpad; //This pad respects HAT order, so take nibble directly.
+        PAD[port].apad = 0; //Default to dead
+        PAD[port].xpad = 0; //Default to dead
+
+        if (apad != 0x00) {
+            if ((apad >> 0) & 1) PAD[port].apad |= (1 << 2); //If 1st bit of apad is set, is X (Square), goes in 3rd bit of APAD
+            if ((apad >> 1) & 1) PAD[port].apad |= (1 << 0); //If 2nd bit is set, is A (Cross), goes in 1st bit of APAD
+            if ((apad >> 2) & 1) PAD[port].apad |= (1 << 1); //If 3rd bit is set, is B (Circle), goes in 2nd bit of APAD
+            if ((apad >> 3) & 1) PAD[port].apad |= (1 << 3); //If 4th bit is set, is Y (Triangle), goes in 4th bit of APAD
 
         }
 
-        if (xbut == 0 && apad == 0) {
-            PAD[port].B_DEAD =      true;
-            PAD[port].A =           false;
-            PAD[port].B =           false;
-            PAD[port].X =           false;
-            PAD[port].Y =           false;
+        if (xpad != 0x00) {
+            if ((xpad >> 0) & 1) PAD[port].apad |= (1 << 4); //If 1st bit of xpad is set, is L1, goes in 5th bit of APAD
+            if ((xpad >> 2) & 1) PAD[port].apad |= (1 << 5); //If 3rd bit is set, is L2, goes in 6th bit of APAD
+            if ((xpad >> 5) & 1) PAD[port].apad |= (1 << 6); //If 5th bit is set, is START, goes in 7th bit of APAD
+            if ((xpad >> 4) & 1) PAD[port].apad |= (1 << 7); //If 4th bit is set, is SELECT, goes in 8th bit of APAD
             
-            PAD[port].LT =          false;
-            PAD[port].RT =          false;
-            PAD[port].L2 =          false;
-            PAD[port].R2 =          false;
-            PAD[port].LS =          false;
-            PAD[port].RS =          false;
-            PAD[port].START =       false;
-            PAD[port].SELECT =      false;
-        else {
-            PAD[port].A =           (apad == 2) ? true : false;
-            PAD[port].B =           (apad == 4) ? true : false;
-            PAD[port].X =           (apad == 1) ? true : false;
-            PAD[port].Y =           (apad == 8) ? true : false;
-            
-            PAD[port].LT =          (xbut == 1) ? true : false;
-            PAD[port].RT =          (xbut == 2) ? true : false;
-            PAD[port].L2 =          (xbut == 4) ? true : false;
-            PAD[port].R2 =          (xbut == 8) ? true : false;
-            PAD[port].LS =          (xbut == 64) ? true : false;
-            PAD[port].RS =          (xbut == 128) ? true : false;
-            PAD[port].START =       (xbut == 32) ? true : false;
-            PAD[port].SELECT =      (xbut == 16) ? true : false;
+            if ((xpad >> 2) & 1) PAD[port].xpad |= (1 << 0); //If 3rd bit of xpad is set, is L2, goes in 1st bit of XPAD
+            if ((xpad >> 3) & 1) PAD[port].xpad |= (1 << 1); //If 4th bit is set, is R2, goes in 2nd bit of XPAD
+            if ((xpad >> 6) & 1) PAD[port].xpad |= (1 << 2); //If 7th bit is set, is LS, goes in 3rd bit of XPAD
+            if ((xpad >> 7) & 1) PAD[port].xpad |= (1 << 3); //If 8th bit is set, is RS, goes in 4th bit of XPAD
         }
 
-        }  
+        PAD[port].pending = true;
+    }  
 
-    PAD[port].pending = true;
-
-    }
-    }
 }
 
 void process_final_packet(FinalPacket *p) {
@@ -493,97 +464,166 @@ void process_incoming(State *state) {
         }
 }
 
+//KEYBOARD FUNCTIONS
+
+uint8_t kb_pending() {
+
+    int test = 0;
+    for (int i = 0; i < MAX_DEVICES; i++) {
+
+        if (KB[i].pending) test = i;
+
+    }
+
+    //return the first KB-type device with a character pending.
+    return test;
+
+}
+
+char read_key(State *state) {
+
+    while (!kb_pending()) {
+        process_incoming(&state);
+    }
+    
+    uint8_t kb = kb_pending();
+    KB[kb].pending = false;
+    char ret_key = KB[kb].key;
+    KB[kb].key = 0x00;
+    return ret_key;
+
+}
+
+bool check_key(State *state) {
+
+    process_incoming(&state);
+    if (kb_pending()) return true;
+    else return false;
+
+}
+
+//GAMEPAD FUNCTIONS
+
+uint8_t pad_pending() {
+
+    int test = 0;
+    for (int i = 0; i < MAX_DEVICES; i++) {
+
+        if (PAD[i].pending) test = i;
+
+    }
+
+    //return the first PAD-type device with a character pending.
+    return test;
+
+}
+
+uint8_t read_dpad(State *state) {
+
+    while (pad_pending()) {
+        process_incoming(&state);
+    }
+    
+    uint8_t pad = pad_pending();
+    return PAD[pad].dpad;
+
+}
+
+uint8_t read_apad(State *state) {
+
+    while (pad_pending()) {
+        process_incoming(&state);
+    }
+    
+    uint8_t pad = pad_pending();
+    return PAD[pad].apad;
+
+}
+
+uint8_t read_xpad(State *state) {
+
+    while (pad_pending()) {
+        process_incoming(&state);
+    }
+    
+    uint8_t pad = pad_pending();
+    return PAD[pad].xpad;
+
+}
+
+bool check_pad(State *state) {
+
+    process_incoming(&state);
+    if (pad_pending()) return true;
+    else return false;
+
+}
+
 void kmain() {
     printf("\033*");
     printf("\f");
-    if (mcCheckDeviceSupport()) {
-        printf("Character device support detected\n");
 
-        uint16_t count = mcGetDeviceCount();
-        printf("Found %d device(s)\n", count);
+    CharDevice duart_b;
+    mcGetDevice(1, &duart_b);
+    install_interrupt(&duart_b);
 
-        for (int i = 0; i < count; i++) {
-            //CHAR_DEVICE *dev = mcGetDevice(i);
-            CharDevice dev;
-            if (mcGetDevice(i, &dev)) {
+    CharDevice duart_a;
+    if (mcGetDevice(0, &duart_a)) fctprintf(mcSendDevice, &duart_a, "\f");
 
-            printf("data    : 0x%08lx\n", dev.data);
-            printf("checkptr: 0x%08lx\n", dev.checkptr);
-            printf("recvptr : 0x%08lx\n", dev.recvptr);
-            printf("sendptr : 0x%08lx\n", dev.sendptr);
+    State state;
+    state.state = STATE_DISCARD;
 
-            // printf("Printing to device %d\n", i);
-            // fctprintf(mcSendDevice, dev, "Hello, World\n"); 
-            printf("\n\n");
-            }
-        }
+    for (int i = 0; i < MAX_DEVICES; i++) {
 
-        printf("Done\n");
+        USB_DEVICE[i].connected=false;
+        USB_DEVICE[i].vendor_id=0xFFFF;
+        USB_DEVICE[i].product_id=0xFFFF;
+        USB_DEVICE[i].dev_type=UNKNOWN;
 
-        //CHAR_DEVICE *duart_b = mcGetDevice(1);
-        CharDevice duart_b;
-        mcGetDevice(1, &duart_b);
-        install_interrupt(&duart_b);
+    }
 
-        printf("Interrupt handler installed\n");
-
-        CharDevice duart_a;
-        if (mcGetDevice(0, &duart_a)) {
-        fctprintf(mcSendDevice, &duart_a, "\f");
-
-        State state;
-        state.state = STATE_DISCARD;
-
-        for (int i = 0; i < MAX_DEVICES; i++) {
-
-            USB_DEVICE[i].connected=false;
-            USB_DEVICE[i].vendor_id=0xFFFF;
-            USB_DEVICE[i].product_id=0xFFFF;
-            USB_DEVICE[i].dev_type=UNKNOWN;
-    
-        }
     while (true) {            
         
         //Main loop - go until input is provided (do other things in here)
         while ((!PAD[0].pending) && (!PAD[1].pending && (!KB[0].pending)) && (!KB[1].pending)) {
             process_incoming(&state);
             #ifdef DEBUG_HEARTBEAT        
-                fctprintf(mcSendDevice, &duart_a, "*");
+                if (mcGetDevice(0, &duart_a)) fctprintf(mcSendDevice, &duart_a, "*");
             #endif
         }
 
     //Once input has been flagged up, check it, service it, and then return to the main loop.  
-    for (i == 0; i < 2; i++) {
-        if (PAD[i].pending) {
-            PAD[i].pending = false;
-            if (!PAD[i].D_DEAD) {
-                if         (PAD[i].UP) printf("%d: Up\n", i);
-                else if    (PAD[i].UP_RIGHT) printf("%d: Up-right\n", i);
-                else if    (PAD[i].UP_LEFT) printf("%d: Up-left\n", i);
-                else if    (PAD[i].DOWN) printf("%d: Down\n", i);
-                else if    (PAD[i].DOWN_RIGHT) printf("%d: Down-right\n", i);
-                else if    (PAD[i].DOWN_LEFT) printf("%d: Down-left\n", i);
-                else if    (PAD[i].LEFT) printf("%d: Left\n", i);
-                else if    (PAD[i].RIGHT) printf("%d: Right\n", i);
-            } 
-            if (!PAD[i].B_DEAD) {
-                if         (PAD[i].A) printf("%d: A\n", i);
-                else if    (PAD[i].B) printf("%d: B\n", i);
-                else if    (PAD[i].X) printf("%d: X\n", i);
-                else if    (PAD[i].Y) printf("%d: Y\n", i);
+    for (i == 0; i < MAX_DEVICES; i++) {
+        // if (PAD[i].pending) {
+        //     PAD[i].pending = false;
+        //     if (!PAD[i].D_DEAD) {
+        //         if         (PAD[i].UP) printf("%d: Up\n", i);
+        //         else if    (PAD[i].UP_RIGHT) printf("%d: Up-right\n", i);
+        //         else if    (PAD[i].UP_LEFT) printf("%d: Up-left\n", i);
+        //         else if    (PAD[i].DOWN) printf("%d: Down\n", i);
+        //         else if    (PAD[i].DOWN_RIGHT) printf("%d: Down-right\n", i);
+        //         else if    (PAD[i].DOWN_LEFT) printf("%d: Down-left\n", i);
+        //         else if    (PAD[i].LEFT) printf("%d: Left\n", i);
+        //         else if    (PAD[i].RIGHT) printf("%d: Right\n", i);
+        //     } 
+        //     if (!PAD[i].B_DEAD) {
+        //         if         (PAD[i].A) printf("%d: A\n", i);
+        //         else if    (PAD[i].B) printf("%d: B\n", i);
+        //         else if    (PAD[i].X) printf("%d: X\n", i);
+        //         else if    (PAD[i].Y) printf("%d: Y\n", i);
                         
-                else if    (PAD[i].LT) printf("%d: Left Trigger\n", i);
-                else if    (PAD[i].L2) printf("%d: Left Trigger 2\n", i);
-                else if    (PAD[i].RT) printf("%d: Right Trigger\n", i);
-                else if    (PAD[i].R2) printf("%d: Right Trigger 2\n", i);
+        //         else if    (PAD[i].LT) printf("%d: Left Trigger\n", i);
+        //         else if    (PAD[i].L2) printf("%d: Left Trigger 2\n", i);
+        //         else if    (PAD[i].RT) printf("%d: Right Trigger\n", i);
+        //         else if    (PAD[i].R2) printf("%d: Right Trigger 2\n", i);
 
-                else if    (PAD[i].LS) printf("%d: Left Stick\n", i);
-                else if    (PAD[i].RS) printf("%d: Right Stick\n", i);
+        //         else if    (PAD[i].LS) printf("%d: Left Stick\n", i);
+        //         else if    (PAD[i].RS) printf("%d: Right Stick\n", i);
 
-                else if    (PAD[i].START) printf("%d: Start\n", i);
-                else if    (PAD[i].SELECT) printf("%d: Select\n", i);
-            }
-        }
+        //         else if    (PAD[i].START) printf("%d: Start\n", i);
+        //         else if    (PAD[i].SELECT) printf("%d: Select\n", i);
+        //     }
+        // }
         
         if (KB[i].pending) {
             KB[i].pending = false;
@@ -592,10 +632,6 @@ void kmain() {
         }            
         
         } 
-    }
-    }
-    } else {
-        printf("No character device support detected\n");
     }
 }
 
