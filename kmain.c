@@ -177,6 +177,13 @@ bool isSet(unsigned value, unsigned bitindex)
     return (value & (1 << bitindex)) != 0;
 }
 
+void setBit(uint8_t *value, uint8_t bitindex)
+{
+
+    &value |= (1 << bitindex);
+
+}
+
 int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 {
 
@@ -268,10 +275,13 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         PAD[port].xpad = 0; //Default to dead
 
         if (apad != 0x00) {
-            if ((apad >> 0) & 1) PAD[port].apad |= (1 << 2); //If 1st bit of apad is set, is X (Square), goes in 3rd bit of APAD
-            if ((apad >> 1) & 1) PAD[port].apad |= (1 << 0); //If 2nd bit is set, is A (Cross), goes in 1st bit of APAD
-            if ((apad >> 2) & 1) PAD[port].apad |= (1 << 1); //If 3rd bit is set, is B (Circle), goes in 2nd bit of APAD
-            if ((apad >> 3) & 1) PAD[port].apad |= (1 << 3); //If 4th bit is set, is Y (Triangle), goes in 4th bit of APAD
+            //if (isSet(apad, 0)) PAD[port].apad |= (1 << 2); //If 1st bit of apad is set, is X (Square), goes in 3rd bit of APAD
+            if (isSet(apad, 0)) setBit(PAD[port].apad, 2) //Testing alternative more readable code, should optimise to the same!
+            if (isSet(apad, 1)) PAD[port].apad |= (1 << 0); //If 2nd bit is set, is A (Cross), goes in 1st bit of APAD
+            if (isSet(apad, 2)) PAD[port].apad |= (1 << 1); //If 3rd bit is set, is B (Circle), goes in 2nd bit of APAD
+            if (isSet(apad, 3)) PAD[port].apad |= (1 << 3); //If 4th bit is set, is Y (Triangle), goes in 4th bit of APAD
+            
+            //if (isSet(apad, 0)) PAD[port].apad[3]; << Bool array proto
 
         }
 
