@@ -3,6 +3,7 @@
 #include <basicio.h>
 #include <printf.h>
 #include <string.h>
+#include "ROSCO_CH559.h"
 
 //#define U_DEBUG
 //#define DEBUG_PACKETS           // Define to dump some debug info
