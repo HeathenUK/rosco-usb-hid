@@ -71,6 +71,24 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
 }
 
+void remap_dpad(uint8_t port, uint8_t from, uint8_t to) {
+
+    if (isSet(dpad, from)) PAD[port].buttons.dpad |= (1 << to);
+
+}
+
+void remap_apad(uint8_t port, uint8_t from, uint8_t to) {
+
+    if (isSet(apad, from)) PAD[port].buttons.apad |= (1 << to);
+
+}
+
+void remap_xpad(uint8_t port, uint8_t from, uint8_t to) {
+
+    if (isSet(xpad, from)) PAD[port].buttons.xpad |= (1 << to);
+
+}
+
 void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid) {
 
     PAD[port].buttons.dpad = 0;
@@ -131,23 +149,34 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         PAD[port].buttons.xpad = 0; //Default to dead
 
         if (apad != 0x00) {
-            if (isSet(apad, 0)) PAD[port].buttons.apad |= (1 << 2); //If 1st bit of apad is set, is X (Square), goes in 3rd bit of APAD
-            if (isSet(apad, 1)) PAD[port].buttons.apad |= (1 << 0); //If 2nd bit is set, is A (Cross), goes in 1st bit of APAD
-            if (isSet(apad, 2)) PAD[port].buttons.apad |= (1 << 1); //If 3rd bit is set, is B (Circle), goes in 2nd bit of APAD
-            if (isSet(apad, 3)) PAD[port].buttons.apad |= (1 << 3); //If 4th bit is set, is Y (Triangle), goes in 4th bit of APAD
+            remap_apad(port, 0, 2);
+            remap_apad(port, 1, 0);
+            remap_apad(port, 2, 1);
+            remap_apad(port, 3, 3);
+            // if (isSet(apad, 0)) PAD[port].buttons.apad |= (1 << 2); //If 1st bit of apad is set, is X (Square), goes in 3rd bit of APAD
+            // if (isSet(apad, 1)) PAD[port].buttons.apad |= (1 << 0); //If 2nd bit is set, is A (Cross), goes in 1st bit of APAD
+            // if (isSet(apad, 2)) PAD[port].buttons.apad |= (1 << 1); //If 3rd bit is set, is B (Circle), goes in 2nd bit of APAD
+            // if (isSet(apad, 3)) PAD[port].buttons.apad |= (1 << 3); //If 4th bit is set, is Y (Triangle), goes in 4th bit of APAD
 
         }
 
         if (xpad != 0x00) {
-            if (isSet(xpad, 0)) PAD[port].buttons.apad |= (1 << 4); //If 1st bit of xpad is set, is L1, goes in 5th bit of APAD
-            if (isSet(xpad, 1)) PAD[port].buttons.apad |= (1 << 5); //If 3rd bit is set, is R1, goes in 6th bit of APAD
-            if (isSet(xpad, 5)) PAD[port].buttons.apad |= (1 << 6); //If 5th bit is set, is START, goes in 7th bit of APAD
-            if (isSet(xpad, 4)) PAD[port].buttons.apad |= (1 << 7); //If 4th bit is set, is SELECT, goes in 8th bit of APAD
-            
-            if (isSet(xpad, 2)) PAD[port].buttons.xpad |= (1 << 0); //If 3rd bit of xpad is set, is L2, goes in 1st bit of XPAD
-            if (isSet(xpad, 3)) PAD[port].buttons.xpad |= (1 << 1); //If 4th bit is set, is R2, goes in 2nd bit of XPAD
-            if (isSet(xpad, 6)) PAD[port].buttons.xpad |= (1 << 2); //If 7th bit is set, is LS, goes in 3rd bit of XPAD
-            if (isSet(xpad, 7)) PAD[port].buttons.xpad |= (1 << 3); //If 8th bit is set, is RS, goes in 4th bit of XPAD
+            remap_xpad(port, 0, 4);
+            remap_xpad(port, 1, 5);
+            remap_xpad(port, 2, 0);
+            remap_xpad(port, 3, 1);
+            remap_xpad(port, 4, 7);
+            remap_xpad(port, 5, 6);
+            remap_xpad(port, 6, 2);
+            remap_xpad(port, 7, 3);
+            // if (isSet(xpad, 0)) PAD[port].buttons.apad |= (1 << 4); //If 1st bit of xpad is set, is L1, goes in 5th bit of APAD
+            // if (isSet(xpad, 1)) PAD[port].buttons.apad |= (1 << 5); //If 2nd bit is set, is R1, goes in 6th bit of APAD
+            // if (isSet(xpad, 2)) PAD[port].buttons.xpad |= (1 << 0); //If 3rd bit of xpad is set, is L2, goes in 1st bit of XPAD
+            // if (isSet(xpad, 3)) PAD[port].buttons.xpad |= (1 << 1); //If 4th bit is set, is R2, goes in 2nd bit of XPAD
+            // if (isSet(xpad, 4)) PAD[port].buttons.apad |= (1 << 7); //If 5th bit is set, is SELECT, goes in 8th bit of APAD
+            // if (isSet(xpad, 5)) PAD[port].buttons.apad |= (1 << 6); //If 6th bit is set, is START, goes in 7th bit of APAD
+            // if (isSet(xpad, 6)) PAD[port].buttons.xpad |= (1 << 2); //If 7th bit is set, is LS, goes in 3rd bit of XPAD
+            // if (isSet(xpad, 7)) PAD[port].buttons.xpad |= (1 << 3); //If 8th bit is set, is RS, goes in 4th bit of XPAD
         }
 
         PAD[port].pending = true;
