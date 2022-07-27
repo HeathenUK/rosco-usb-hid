@@ -98,18 +98,13 @@ struct {
 
 struct {
     bool pending;
+    int raw[6];
     char key;
-    int key_raw;
     char key2;
-    int key2_raw;
     char key3;
-    int key4_raw;
     char key4;
-    int key4_raw;
     char key5;
-    int key5_raw;
     char key6;
-    int key6_raw;
     uint8_t control_keys;
     bool caps;
 

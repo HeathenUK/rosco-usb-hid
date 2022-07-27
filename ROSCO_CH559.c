@@ -54,6 +54,8 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
     KB[port].control_keys = new_keys[0];
     for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
         
+        KB[port].raw[i - 2] == new_keys[i];
+
         if (new_keys[i] == KEY_CAPSLOCK) {
             KB[port].caps = !KB[port].caps;
             return;
