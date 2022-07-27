@@ -62,62 +62,6 @@ typedef struct  {
 
 } BUTTONS;
 
-struct {
-    bool pending;
-    BUTTONS buttons;
-    // bool UP;
-    // bool UP_RIGHT;
-    // bool UP_LEFT;
-    // bool DOWN;
-    // bool DOWN_RIGHT;
-    // bool DOWN_LEFT;
-    // bool LEFT;
-    // bool RIGHT;
-    
-    // bool D_DEAD;
-    // bool B_DEAD;
-
-    // bool Y;
-    // bool A;
-    // bool X;
-    // bool B;
-    
-    // bool LT;
-    // bool RT;
-
-    // bool L2;
-    // bool R2;
-
-    // bool LS;
-    // bool RS;
-
-    // bool START;
-    // bool SELECT;
-
-} PAD[MAX_DEVICES];
-
-struct {
-    bool pending;
-    int raw[6];
-    char key;
-    char key2;
-    char key3;
-    char key4;
-    char key5;
-    char key6;
-    uint8_t control_keys;
-    bool caps;
-
-} KB[MAX_DEVICES];
-
-struct {
-    bool        connected;
-    uint16_t    vendor_id;
-    uint16_t    product_id;
-    DEV_TYPE    dev_type;
-
-} USB_DEVICE[MAX_DEVICES];
-
 typedef struct {
     STATE   state;
     uint8_t packet[2048];           // I don't know how big this needs to be - size of biggest packet
@@ -145,23 +89,7 @@ extern void install_interrupt(CharDevice *device);
 extern void remove_interrupt();
 extern uint16_t unbuffer(unsigned char *buffer);
 
-unsigned char keys_upper[100] = {0x00,0x1C,0x1C,0x1C,                                        //0x00 - 0x03
-'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',                                //0x04 - 0x12
-'P','Q','R','S','T','U','V','W','X','Y','Z',                                                //0x13 - 0x1D
-'!','"',0xA3,'$','%','^','&','*','(',')',                                                   //0x1E - 0x27
-'\r',0x1C,0x08,'    ', ' ','_','+','{','}','|','~',':',                                     //0x28 - 0x33
-0x40,0xAC,'<','>','?',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,     //0x34 - 0x45 (F12)
-0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};                                                        //0x46 - 0x4C (DELETE)
 
-unsigned char keys_lower[100] = {0x00,0x1C,0x1C,0x1C,
-'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
-'p','q','r','s','t','u','v','w','x','y','z',
-'1','2','3','4','5','6','7','8','9','0',
-'\r',0x1C,0x08,' ', ' ','-','=','[',']','\\','#',';',
-'\'','`',',','.','/',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,
-0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};    
-
-char last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
 
 //static bool keyboard_cap = false;
 
@@ -183,19 +111,19 @@ void process_incoming(State *state);
 
 //KEYBOARD FUNCTIONS
 
-uint8_t kb_pending();
+int kb_pending();
 
 char read_key(State *state);
 
 bool check_key(State *state);
 
-int u_readline(char *buf, int buf_size);
+int u_readline(State *state, char *buf, int buf_size);
 
-const char* ugets(State *state, uint16_t max_size);
+char* ugets(State *state, char *buf, int n);
 
 //GAMEPAD FUNCTIONS
 
-uint8_t pad_pending();
+int pad_pending();
 
 BUTTONS read_pad(State *state);
 

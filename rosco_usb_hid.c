@@ -2,6 +2,9 @@
 
 int main(int argc, char **argv) {
 
+    (void)argc;
+    (void)argv;
+
     printf("\033*");
     printf("\f");
 
@@ -21,8 +24,9 @@ int main(int argc, char **argv) {
         
         //Demo 1: fgets() equivalent. Will wait for either a \n terminated
         //string or a max length and then return that string.
-
-        printf("String: %s", ugets(&state, 50));
+        char buffer[40];
+        ugets(&state, buffer, sizeof(buffer)-1);
+        printf("\nString: %s", buffer);
         
         //Demo 2: checkchar() equivalents. Will return true if input is
         //is pending, false if not.

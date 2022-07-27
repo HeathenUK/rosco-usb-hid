@@ -24,6 +24,52 @@
 #define DEBUGX(...)
 #endif
 
+struct {
+    bool pending;
+    BUTTONS buttons;
+} PAD[MAX_DEVICES];
+
+struct {
+    bool pending;
+    int raw[6];
+    char key;
+    char key2;
+    char key3;
+    char key4;
+    char key5;
+    char key6;
+    uint8_t control_keys;
+    bool caps;
+
+} KB[MAX_DEVICES];
+
+struct {
+    bool        connected;
+    uint16_t    vendor_id;
+    uint16_t    product_id;
+    DEV_TYPE    dev_type;
+
+} USB_DEVICE[MAX_DEVICES];
+
+unsigned char keys_upper[100] = {0x00,0x1C,0x1C,0x1C,                                        //0x00 - 0x03
+'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',                                //0x04 - 0x12
+'P','Q','R','S','T','U','V','W','X','Y','Z',                                                //0x13 - 0x1D
+'!','"',0xA3,'$','%','^','&','*','(',')',                                                   //0x1E - 0x27
+'\r',0x1C,0x08,' ', ' ','_','+','{','}','|','~',':',                                     //0x28 - 0x33
+0x40,0xAC,'<','>','?',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,     //0x34 - 0x45 (F12)
+0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};                                                        //0x46 - 0x4C (DELETE)
+
+unsigned char keys_lower[100] = {0x00,0x1C,0x1C,0x1C,
+'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
+'p','q','r','s','t','u','v','w','x','y','z',
+'1','2','3','4','5','6','7','8','9','0',
+'\r',0x1C,0x08,' ', ' ','-','=','[',']','\\','#',';',
+'\'','`',',','.','/',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,
+0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};    
+
+unsigned char last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
+
+
 bool isSet(unsigned value, unsigned bitindex)
 {
     return (value & (1 << bitindex)) != 0;
@@ -54,7 +100,7 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
     KB[port].control_keys = new_keys[0];
     for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
         
-        KB[port].raw[i - 2] == new_keys[i];
+        KB[port].raw[i - 2] = new_keys[i];
 
         if (new_keys[i] == KEY_CAPSLOCK) {
             KB[port].caps = !KB[port].caps;
@@ -75,19 +121,19 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
 void remap_dpad(uint8_t port, uint8_t from, uint8_t to) {
 
-    if (isSet(dpad, from)) PAD[port].buttons.dpad |= (1 << to);
+    if (isSet(PAD[port].buttons.dpad, from)) PAD[port].buttons.dpad |= (1 << to);
 
 }
 
 void remap_apad(uint8_t port, uint8_t from, uint8_t to) {
 
-    if (isSet(apad, from)) PAD[port].buttons.apad |= (1 << to);
+    if (isSet(PAD[port].buttons.apad, from)) PAD[port].buttons.apad |= (1 << to);
 
 }
 
 void remap_xpad(uint8_t port, uint8_t from, uint8_t to) {
 
-    if (isSet(xpad, from)) PAD[port].buttons.xpad |= (1 << to);
+    if (isSet(PAD[port].buttons.xpad, from)) PAD[port].buttons.xpad |= (1 << to);
 
 }
 
@@ -404,12 +450,15 @@ bool check_key(State *state) {
 
 }
 
-int u_readline(char *buf, int buf_size) { // WIP - Probably wouldn't compile right now
+static char backspace[4] = { 0x08, 0x20, 0x08, 0x00 };
+static char sendbuf[2] = { 0x00, 0x00 };
+
+int u_readline(State *state, char *buf, int buf_size) { // WIP - Probably wouldn't compile right now
   register char c;
   register uint8_t i = 0;
 
   while (i < buf_size - 1) {
-    c = buf[i] = read_key();
+    c = buf[i] = read_key(state);
 
     switch (c) {
     case 0x08:
@@ -417,7 +466,7 @@ int u_readline(char *buf, int buf_size) { // WIP - Probably wouldn't compile rig
       if (i > 0) {
         buf[i-1] = 0;
         i = i - 1;
-        printf(0x08);
+        printf("%s", backspace);
       }
       break;
     case 0x0A:
@@ -439,8 +488,8 @@ int u_readline(char *buf, int buf_size) { // WIP - Probably wouldn't compile rig
   return buf_size;
 }
 
-char* ugets(char *buf, int n, FILE *stream) {
-  int len = u_readline(buf, n);
+char* ugets(State *state, char *buf, int n) {
+  int len = u_readline(state, buf, n);
 
   if (len > 0 && len < (n - 1)) {
     buf[len] = '\n';
