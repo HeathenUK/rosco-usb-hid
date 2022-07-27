@@ -117,9 +117,9 @@ char read_key(State *state);
 
 bool check_key(State *state);
 
-int u_readline(State *state, char *buf, int buf_size);
+int ugets(State *state, char * buf, int buf_size);
 
-char* ugets(State *state, char *buf, int n);
+int u_readline(State *state, char *buf, int buf_size);
 
 //GAMEPAD FUNCTIONS
 
