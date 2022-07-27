@@ -99,11 +99,17 @@ struct {
 struct {
     bool pending;
     char key;
+    int key_raw;
     char key2;
+    int key2_raw;
     char key3;
+    int key4_raw;
     char key4;
+    int key4_raw;
     char key5;
+    int key5_raw;
     char key6;
+    int key6_raw;
     uint8_t control_keys;
     bool caps;
 
@@ -144,23 +150,23 @@ extern void install_interrupt(CharDevice *device);
 extern void remove_interrupt();
 extern uint16_t unbuffer(unsigned char *buffer);
 
-unsigned char keys_upper[60] = {0x00,'\0','\0','\0',                                        //0x00 - 0x03
+unsigned char keys_upper[100] = {0x00,0x1C,0x1C,0x1C,                                        //0x00 - 0x03
 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',                                //0x04 - 0x12
 'P','Q','R','S','T','U','V','W','X','Y','Z',                                                //0x13 - 0x1D
 '!','"',0xA3,'$','%','^','&','*','(',')',                                                   //0x1E - 0x27
-'\r','\0',0x08,'    ', ' ','_','+','{','}','|','~',':',                                     //0x28 - 0x33
-0x40,0xAC,'<','>','?','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0',     //0x34 - 0x45 (F12)
-'\0','\0','\0','\0','\0','\0',0x7F};                                                        //0x46 - 0x4C (DELETE)
+'\r',0x1C,0x08,'    ', ' ','_','+','{','}','|','~',':',                                     //0x28 - 0x33
+0x40,0xAC,'<','>','?',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,     //0x34 - 0x45 (F12)
+0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};                                                        //0x46 - 0x4C (DELETE)
 
-unsigned char keys_lower[60] = {0x00,'\0','\0','\0',
+unsigned char keys_lower[100] = {0x00,0x1C,0x1C,0x1C,
 'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o',
 'p','q','r','s','t','u','v','w','x','y','z',
 '1','2','3','4','5','6','7','8','9','0',
-'\r','\0',0x08,' ', ' ','-','=','[',']','\\','#',';',
-'\'','`',',','.','/','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0','\0',
-'\0','\0','\0','\0','\0','\0',0x7F};    
+'\r',0x1C,0x08,' ', ' ','-','=','[',']','\\','#',';',
+'\'','`',',','.','/',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,
+0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};    
 
-last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
+char last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
 
 //static bool keyboard_cap = false;
 
