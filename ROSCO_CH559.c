@@ -387,6 +387,41 @@ const char* ugets(State *state, uint16_t max_size) {
 
 }
 
+// int u_readline(char *buf, int buf_size) { // WIP - Probably wouldn't compile right now
+//   register char c;
+//   register uint8_t i = 0;
+
+//   while (i < buf_size - 1) {
+//     c = buf[i] = mcReadchar();
+
+//     switch (c) {
+//     case 0x08:
+//     case 0x7F:  /* DEL */
+//       if (i > 0) {
+//         buf[i-1] = 0;
+//         i = i - 1;
+//         mcPrint(backspace);
+//       }
+//       break;
+//     case 0x0A:
+//       // throw this away...
+//       break;
+//     case 0x0D:
+//       // return
+//       buf[i] = 0;
+//       mcPrintln("");
+//       return i;
+//     default:
+//       buf[i++] = c;
+//       sendbuf[0] = c;
+//       mcPrint(sendbuf);
+//     }
+//   }
+
+//   buf[buf_size-1] = 0;
+//   return buf_size;
+// }
+
 //GAMEPAD FUNCTIONS
 
 uint8_t pad_pending() {
