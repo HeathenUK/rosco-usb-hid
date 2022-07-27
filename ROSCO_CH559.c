@@ -368,25 +368,25 @@ void process_incoming(State *state) {
 
 //KEYBOARD FUNCTIONS
 
-uint8_t kb_pending() {
+int kb_pending() {
 
-    int test = 0;
+    int test = -1;
     for (int i = 0; i < MAX_DEVICES; i++) {
 
-        if (KB[i].pending) test = i + 1;
+        if (KB[i].pending) test = i;
 
     }
 
-    //return the first KB-type device with a character pending PLUS ONE.
+    //return the first KB-type device with a character pending.
     return test;
 
 }
 
 char read_key(State *state) {
-    while (kb_pending() == 0) {
+    while (kb_pending() == -1) {
         process_incoming(state);
     }
-    uint8_t kb = kb_pending() - 1;
+    uint8_t kb = kb_pending();
     KB[kb].pending = false;
     char ret_key = KB[kb].key;
     KB[kb].key = 0x00;
@@ -464,26 +464,26 @@ char* ugets(char *buf, int n, FILE *stream) {
 
 //GAMEPAD FUNCTIONS
 
-uint8_t pad_pending() {
+int pad_pending() {
 
-    int test = 0;
+    int test = -1;
     for (int i = 0; i < MAX_DEVICES; i++) {
 
-        if (PAD[i].pending) test = i + 1;
+        if (PAD[i].pending) test = i;
 
     }
     return test;
-    //return the first PAD-type device with a character pending PLUS ONE.
+    //return the first PAD-type device with a character pending.
 
 }
 
 BUTTONS read_pad(State *state) {
 
-    while (pad_pending() == 0) {
+    while (pad_pending() == -1) {
         process_incoming(state);
     }
     
-    uint8_t pad = pad_pending() - 1;
+    uint8_t pad = pad_pending();
     PAD[pad].pending = false;
     return PAD[pad].buttons;
 
