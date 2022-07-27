@@ -55,7 +55,7 @@ unsigned char keys_upper[100] = {0x00,0x1C,0x1C,0x1C,                           
 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',                                //0x04 - 0x12
 'P','Q','R','S','T','U','V','W','X','Y','Z',                                                //0x13 - 0x1D
 '!','"',0xA3,'$','%','^','&','*','(',')',                                                   //0x1E - 0x27
-'\r',0x1C,0x08,' ', ' ','_','+','{','}','|','~',':',                                     //0x28 - 0x33
+'\r',0x1C,0x08,' ', ' ','_','+','{','}','|','~',':',                                       //0x28 - 0x33
 0x40,0xAC,'<','>','?',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,     //0x34 - 0x45 (F12)
 0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};                                                        //0x46 - 0x4C (DELETE)
 
@@ -74,13 +74,6 @@ bool isSet(unsigned value, unsigned bitindex)
 {
     return (value & (1 << bitindex)) != 0;
 }
-
-// uint8_t setBit(uint8_t *value, uint8_t bitindex)
-// {
-//     value |= 1 << bitindex;
-//     return value;
-
-// }
 
 int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 {
@@ -450,68 +443,57 @@ bool check_key(State *state) {
 
 }
 
-static char backspace[4] = { 0x08, 0x20, 0x08, 0x00 };
-static char sendbuf[2] = { 0x00, 0x00 };
+int ugets(State *state, char * buf, int buf_size) //Credit to Xark for original version
+{
+    //ctrl_c_flag = false;
+    memset(buf, 0, buf_size);
 
-int u_readline(State *state, char *buf, int buf_size) { // WIP - Probably wouldn't compile right now
-  register char c;
-  register uint8_t i = 0;
+    int len = 0;
+    while (true)
+    {
+        char c = read_key(state);
 
-  while (i < buf_size - 1) {
-    c = buf[i] = read_key(state);
+        // accept string
+        if (c == '\r')
+        {
+            break;
+        }
 
-    switch (c) {
-    case 0x08:
-    case 0x7F:  /* DEL */
-      if (i > 0) {
-        buf[i-1] = 0;
-        i = i - 1;
-        printf("%s", backspace);
-      }
-      break;
-    case 0x0A:
-      // throw this away...
-      break;
-    case 0x0D:
-      // return
-      buf[i] = 0;
-      printf("\n");
-      return i;
-    default:
-      buf[i++] = c;
-      sendbuf[0] = c;
-      printf(sendbuf);
+        switch (c)
+        {
+            // backspace
+            case '\b': /* ^H */
+            case 0x7F: /* DEL */
+                if (len > 0)
+                {
+                    buf[--len] = '\0';
+                    printf("\b \b");
+                }
+                break;
+            // clear string
+            case '\x3':  /* ^C */
+            case '\x18': /* ^X */
+                while (len > 0)
+                {
+                    buf[--len] = '\0';
+                    printf("\b \b");
+                }
+                break;
+
+            // add non-control character
+            default:
+                if (len < (buf_size - 1) && c >= ' ')
+                {
+                    printchar(c);
+                    buf[len++] = c;
+                }
+        }
     }
-  }
-
-  buf[buf_size-1] = 0;
-  return buf_size;
+    printf("\n");
+    // make sure string is terminated
+    buf[len] = 0;
+    return len;
 }
-
-char* ugets(State *state, char *buf, int n) {
-  int len = u_readline(state, buf, n);
-
-  if (len > 0 && len < (n - 1)) {
-    buf[len] = '\n';
-    buf[len+1] = 0;
-  }
-
-  return buf;
-}
-
-// const char* ugets(State *state, uint16_t max_size) { //Working pre u_readline code.
-
-//     static char ugets_buffer[1024] = "";
-//     memset(ugets_buffer,0,sizeof(ugets_buffer));
-//     while (true) {
-//         char new_key = read_key(state);
-//         strncat(ugets_buffer, &new_key, 1);
-//         if ((new_key == '\n') || (strlen(ugets_buffer) == (long unsigned int)(max_size - 1))) break;
-//     }
-
-//     return ugets_buffer;
-
-// }
 
 //GAMEPAD FUNCTIONS
 
