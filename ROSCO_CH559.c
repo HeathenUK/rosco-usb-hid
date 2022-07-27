@@ -419,7 +419,7 @@ char* ugets(char *buf, int n, FILE *stream) {
   return buf;
 }
 
-// const char* ugets(State *state, uint16_t max_size) { //Working
+// const char* ugets(State *state, uint16_t max_size) { //Working pre u_readline code.
 
 //     static char ugets_buffer[1024] = "";
 //     memset(ugets_buffer,0,sizeof(ugets_buffer));
