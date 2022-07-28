@@ -115,7 +115,8 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
                 KB[port].pending = true;
             }
         }
-        KB[port].raw[i - 2] = new_keys[i];  //Store the raw USB keycodes (to allow processing non-ascii keys like arrows etc.) and for comparison against next loop.
+        KB[port].raw[i - 2] = new_keys[i];  //Store the raw USB keycodes (to allow processing non-ascii keys like arrows etc.)
+                                            //and, since this should also store zeroes, for comparison against next loop.
     }
     //printf("%c registered\n", KB[port].key);
     //memcpy(last_ingest, new_keys, 8);
