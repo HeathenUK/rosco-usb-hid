@@ -115,6 +115,8 @@ int kb_pending();
 
 char read_key(State *state);
 
+int read_raw(State *state);
+
 bool check_key(State *state);
 
 int ugets(State *state, char * buf, int buf_size);
