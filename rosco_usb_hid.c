@@ -24,11 +24,19 @@ int main(int argc, char **argv) {
         
         //Demo 1: fgets() equivalent. Will wait for either a \n terminated
         //string or a max length and then return that string.
-        char buffer[40];
-        ugets(&state, buffer, sizeof(buffer)-1);
-        printf("\nString: %s", buffer);
+        // char buffer[40];
+        // printf("Prompt:> ");
+        // ugets(&state, buffer, sizeof(buffer)-1);
+        // printf("\nString: %s\n\n", buffer);
         
-        //Demo 2: checkchar() equivalents. Will return true if input is
+        //printf("\nString: %d\n\n", read_raw(&state));
+            
+        
+        //Demo 2: get full state of last keyboard to send input. In this example, combine the state of the control key byte with the last key pressed to respond to Ctrl+C
+        struct KEYB inspect = get_kb(&state);
+        if (inspect.raw[0] == KEY_C && isSet(inspect.control_keys, KEY_MOD_RCTRL)) printf("Combo!");
+
+        //Demo 3: checkchar() equivalents. Will return true if input is
         //is pending, false if not.
 
         // if (check_pad(&state)) {
@@ -40,7 +48,7 @@ int main(int argc, char **argv) {
 
         // if (check_key(&state)) printf("%c", read_key(&state));
 
-        //Demo 3: readchar() equivalent. Will block until input is pending
+        //Demo 4: readchar() equivalent. Will block until input is pending
         //and then return it.
         
         //  printf("%c", read_key(&state));

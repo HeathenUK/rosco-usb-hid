@@ -29,19 +29,7 @@ struct {
     BUTTONS buttons;
 } PAD[MAX_DEVICES];
 
-struct {
-    bool pending;
-    int raw[6];
-    char key[6];
-    // char key2;
-    // char key3;
-    // char key4;
-    // char key5;
-    // char key6;
-    uint8_t control_keys;
-    bool caps;
-
-} KB[MAX_DEVICES];
+struct KEYB KB[MAX_DEVICES];
 
 struct {
     bool        connected;
@@ -75,7 +63,7 @@ bool isSet(unsigned value, unsigned bitindex)
     return (value & (1 << bitindex)) != 0;
 }
 
-int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
+int checkarray(uint8_t val, int * arr, uint8_t arrLen)
 {
 
     for (int i = 0; i < arrLen; i++) {
@@ -104,13 +92,13 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
         if ((KB[port].caps) || (isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
             //if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];                 
-            if (!checkarray(new_keys[i], KB[port].raw[i - 2], 6)) {                                      //If the new raw code doesn't feature in the array of old raw codes
+            if (!checkarray(new_keys[i], &KB[port].raw[i - 2], 6)) {                                      //If the new raw code doesn't feature in the array of old raw codes
                 KB[port].key[i - 2] = keys_upper[new_keys[i]];                                           //then this has been pressed and released, store the ASCII equivalent.
                 KB[port].pending = true;
             }
         } else {
             //if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_lower[new_keys[i]];
-            if (!checkarray(new_keys[i], KB[port].raw[i - 2], 6)) {
+            if (!checkarray(new_keys[i], &KB[port].raw[i - 2], 6)) {
                 KB[port].key[i - 2] = keys_lower[new_keys[i]];
                 KB[port].pending = true;
             }
@@ -447,28 +435,6 @@ char read_key(State *state) {
 
 }
 
-char * read_keys(State *state) {
-
-    while (kb_pending() == -1) {
-        process_incoming(state);
-    }
-    uint8_t kb = kb_pending();
-    KB[kb].pending = false;
-    
-    char ret_keys[6];
-
-    for (int i = 0; i < 6; i++) {
-        if (KB[kb].key[i]) {
-            ret_keys[i] = KB[kb].key[i];
-            KB[kb].key[i] = 0x00;
-        }
-    }
-    
-    //KB[kb].key = 0x00;
-    return ret_keys;
-
-}
-
 int read_raw(State *state) {
 
     while (kb_pending() == -1) {
@@ -487,6 +453,23 @@ bool check_key(State *state) {
     process_incoming(state);
     if (kb_pending()) return true;
     else return false;
+
+}
+
+struct KEYB get_kb(State *state) {
+
+    struct KEYB ret_kb;
+
+    while (kb_pending() == -1) {
+        process_incoming(state);
+    }
+    
+    uint8_t kb = kb_pending();
+    
+    KB[kb].pending = false;
+    ret_kb = KB[kb];
+
+    return ret_kb;
 
 }
 
