@@ -98,6 +98,11 @@ struct KEYB{
 
 };
 
+struct GAMEPAD{
+    bool pending;
+    BUTTONS buttons;
+};
+
 //USB HID KEYS - credit to MightyPork: https://gist.github.com/MightyPork/6da26e382a7ad91b5496ee55fdc73db2
 
 #define KEY_MOD_LCTRL  0

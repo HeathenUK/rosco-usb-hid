@@ -24,10 +24,8 @@
 #define DEBUGX(...)
 #endif
 
-struct {
-    bool pending;
-    BUTTONS buttons;
-} PAD[MAX_DEVICES];
+
+struct GAMEPAD PAD[MAX_DEVICES];
 
 struct KEYB KB[MAX_DEVICES];
 
@@ -111,21 +109,21 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
 }
 
-void remap_dpad(uint8_t port, uint8_t from, uint8_t to) {
+void remap_into_dpad(uint8_t port, uint8_t map, uint8_t from, uint8_t to) {
 
-    if (isSet(PAD[port].buttons.dpad, from)) PAD[port].buttons.dpad |= (1 << to);
-
-}
-
-void remap_apad(uint8_t port, uint8_t from, uint8_t to) {
-
-    if (isSet(PAD[port].buttons.apad, from)) PAD[port].buttons.apad |= (1 << to);
+    if (isSet(map, from)) PAD[port].buttons.dpad |= (1 << to);
 
 }
 
-void remap_xpad(uint8_t port, uint8_t from, uint8_t to) {
+void remap_into_apad(uint8_t port, uint8_t map, uint8_t from, uint8_t to) {
 
-    if (isSet(PAD[port].buttons.xpad, from)) PAD[port].buttons.xpad |= (1 << to);
+    if (isSet(map, from)) PAD[port].buttons.apad |= (1 << to);
+
+}
+
+void remap_into_xpad(uint8_t port, uint8_t map, uint8_t from, uint8_t to) {
+
+    if (isSet(map, from)) PAD[port].buttons.xpad |= (1 << to);
 
 }
 
@@ -189,10 +187,10 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         PAD[port].buttons.xpad = 0; //Default to dead
 
         if (apad != 0x00) {
-            remap_apad(port, 0, 2);
-            remap_apad(port, 1, 0);
-            remap_apad(port, 2, 1);
-            remap_apad(port, 3, 3);
+            remap_into_apad(port, apad, 0, 2);
+            remap_into_apad(port, apad, 1, 0);
+            remap_into_apad(port, apad, 2, 1);
+            remap_into_apad(port, apad, 3, 3);
             // if (isSet(apad, 0)) PAD[port].buttons.apad |= (1 << 2); //If 1st bit of apad is set, is X (Square), goes in 3rd bit of APAD
             // if (isSet(apad, 1)) PAD[port].buttons.apad |= (1 << 0); //If 2nd bit is set, is A (Cross), goes in 1st bit of APAD
             // if (isSet(apad, 2)) PAD[port].buttons.apad |= (1 << 1); //If 3rd bit is set, is B (Circle), goes in 2nd bit of APAD
@@ -201,14 +199,14 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
         }
 
         if (xpad != 0x00) {
-            remap_xpad(port, 0, 4);
-            remap_xpad(port, 1, 5);
-            remap_xpad(port, 2, 0);
-            remap_xpad(port, 3, 1);
-            remap_xpad(port, 4, 7);
-            remap_xpad(port, 5, 6);
-            remap_xpad(port, 6, 2);
-            remap_xpad(port, 7, 3);
+            remap_into_apad(port, xpad, 0, 4);
+            remap_into_apad(port, xpad, 1, 5);
+            remap_into_xpad(port, xpad,  2, 0);
+            remap_into_xpad(port, xpad,  3, 1);
+            remap_into_apad(port, xpad,  4, 7);
+            remap_into_apad(port, xpad,  5, 6);
+            remap_into_xpad(port, xpad,  6, 2);
+            remap_into_xpad(port, xpad,  7, 3);
             // if (isSet(xpad, 0)) PAD[port].buttons.apad |= (1 << 4); //If 1st bit of xpad is set, is L1, goes in 5th bit of APAD
             // if (isSet(xpad, 1)) PAD[port].buttons.apad |= (1 << 5); //If 2nd bit is set, is R1, goes in 6th bit of APAD
             // if (isSet(xpad, 2)) PAD[port].buttons.xpad |= (1 << 0); //If 3rd bit of xpad is set, is L2, goes in 1st bit of XPAD

@@ -33,18 +33,18 @@ int main(int argc, char **argv) {
             
         
         //Demo 2: get full state of last keyboard to send input. In this example, combine the state of the control key byte with the last key pressed to respond to Ctrl+C
-        struct KEYB inspect = get_kb(&state);
-        if (inspect.raw[0] == KEY_C && isSet(inspect.control_keys, KEY_MOD_RCTRL)) printf("Combo!");
+        // struct KEYB inspect = get_kb(&state);
+        // if (inspect.raw[0] == KEY_C && isSet(inspect.control_keys, KEY_MOD_RCTRL)) printf("Combo!");
 
-        //Demo 3: checkchar() equivalents. Will return true if input is
+        //Demo 3: checkchar() equivalents for pads and keyboards. Will return true if input is
         //is pending, false if not.
 
-        // if (check_pad(&state)) {
-        //     BUTTONS latest = read_pad(&state);
-        //     printf("%u ", latest.dpad);
-        //     printf("%u ", latest.apad);
-        //     printf("%u\n", latest.xpad);
-        // }
+        if (check_pad(&state)) {
+            BUTTONS latest = read_pad(&state);
+            printf("%u ", latest.dpad);
+            printf("%u ", latest.apad);
+            printf("%u\n", latest.xpad);
+        }
 
         // if (check_key(&state)) printf("%c", read_key(&state));
 
@@ -52,7 +52,6 @@ int main(int argc, char **argv) {
         //and then return it.
         
         //  printf("%c", read_key(&state));
-
 
     }
 }
