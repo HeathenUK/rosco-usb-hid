@@ -56,7 +56,7 @@ unsigned char keys_lower[100] = {0x00,0x1C,0x1C,0x1C,
 unsigned char last_ingest[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
 
 
-bool isSet(unsigned value, unsigned bitindex)
+bool isSet(uint8_t value, uint8_t bitindex)
 {
     return (value & (1 << bitindex)) != 0;
 }
@@ -111,7 +111,9 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
 void remap_into_dpad(uint8_t port, uint8_t map, uint8_t from, uint8_t to) {
 
-    if (isSet(map, from)) PAD[port].buttons.dpad |= (1 << to);
+    if (isSet(map, from)) {
+        PAD[port].buttons.dpad |= (1 << to);
+    }
 
 }
 
@@ -167,7 +169,11 @@ void process_gamepad(uint8_t* new_pad, uint8_t port, uint16_t vid, uint16_t pid)
     //Nvidia Shield Controller Mapper
     if (vid == 0x0955 && pid == 0x7214) {
 
-        PAD[port].buttons.dpad = new_pad[2] & 0x0F; //This pad respects HAT order, so take nibble directly.
+        PAD[port].buttons.dpad = new_pad[2];; //This almost pad respects HAT order, so take nibble directly to start with.
+        
+        remap_into_dpad(port, PAD[port].buttons.dpad, 7, 3); //Outlier is that "dead" is signalled by bit 8 rather than bit 4, so use that bit and then clear the leftover.
+        PAD[port].buttons.dpad &= ~(1 << 7);
+        
         PAD[port].buttons.apad = new_pad[3]; //Almost compliant, we will clobber LS and RS (bits 7 and 8) later.
         PAD[port].buttons.xpad = 0;
             

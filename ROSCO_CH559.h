@@ -225,7 +225,7 @@ struct GAMEPAD{
 #define KEY_POWER 0x66 // Keyboard Power
 #define KEY_KPEQUAL 0x67 // Keypad =
 
-bool isSet(unsigned value, unsigned bitindex);
+bool isSet(uint8_t value, uint8_t bitindex);
 
 int checkarray(uint8_t val, int * arr, uint8_t arrLen);
 
