@@ -1,5 +1,5 @@
         section .text
-
+        align 2
 ; DUART register offsets
 DUART_IMR       equ     $0a
 DUART_ISR       equ     $0a
@@ -130,5 +130,6 @@ HANDLER:
 
 
         section .bss
+        align 2
 BASEADDR    dc.l        0                       ; DUART base address from CHAR_DEVICE struct     
 CHAIN       dc.l        0                       ; Chained ISR (timer tick probably)

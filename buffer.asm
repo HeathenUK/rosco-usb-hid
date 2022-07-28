@@ -1,5 +1,5 @@
         section .text
-
+        align 2
 ; ASM callable - pass character in D0
 ;
 ; Expects to be called in interrupt context, not re-entrant.
@@ -48,6 +48,7 @@ unbuffer::
         rts
 
         section .bss
+        align 2
 BUF         ds.b        1024                    ; 1K might be a bit much, but YMMV
 BUF_R_PTR   dc.w        0                       ; Read pointer
 BUF_W_PTR   dc.w        0                       ; Write pointer
