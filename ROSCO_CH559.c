@@ -32,12 +32,12 @@ struct {
 struct {
     bool pending;
     int raw[6];
-    char key;
-    char key2;
-    char key3;
-    char key4;
-    char key5;
-    char key6;
+    char key[6];
+    // char key2;
+    // char key3;
+    // char key4;
+    // char key5;
+    // char key6;
     uint8_t control_keys;
     bool caps;
 
@@ -51,11 +51,11 @@ struct {
 
 } USB_DEVICE[MAX_DEVICES];
 
-unsigned char keys_upper[100] = {0x00,0x1C,0x1C,0x1C,                                        //0x00 - 0x03
+unsigned char keys_upper[100] = {0x00,0x1C,0x1C,0x1C,                                       //0x00 - 0x03
 'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O',                                //0x04 - 0x12
 'P','Q','R','S','T','U','V','W','X','Y','Z',                                                //0x13 - 0x1D
 '!','"',0xA3,'$','%','^','&','*','(',')',                                                   //0x1E - 0x27
-'\r',0x1C,0x08,' ', ' ','_','+','{','}','|','~',':',                                       //0x28 - 0x33
+'\r',0x1C,0x08,' ', ' ','_','+','{','}','|','~',':',                                        //0x28 - 0x33
 0x40,0xAC,'<','>','?',0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,     //0x34 - 0x45 (F12)
 0x1C,0x1C,0x1C,0x1C,0x1C,0x1C,0x7F};                                                        //0x46 - 0x4C (DELETE)
 
@@ -90,25 +90,35 @@ int checkarray(uint8_t val, uint8_t* arr, uint8_t arrLen)
 
 void process_strikes(uint8_t* new_keys, uint8_t port) {
 
-    KB[port].control_keys = new_keys[0];
-    for (int i = 2; i < 8; i++) {       // Outer loop - Last keys
-        
-        KB[port].raw[i - 2] = new_keys[i];
+    if (new_keys[0]) {                      //First byte from keyboard = control keys (shift, ctrl etc.)
+        KB[port].control_keys = new_keys[0]; 
+        KB[port].pending = true;
+    }
 
-        if (new_keys[i] == KEY_CAPSLOCK) {
+    for (int i = 2; i < 8; i++) {           //Final six bytes (second byte is reserved) are USB keycodes.
+
+        if (new_keys[i] == KEY_CAPSLOCK) {  //Special case for caps lock, store for logic below but do nothing else with it.
             KB[port].caps = !KB[port].caps;
             return;
         }
 
         if ((KB[port].caps) || (isSet(new_keys[0], 1)) || (isSet(new_keys[0], 5))) {
-            if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];
+            //if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_upper[new_keys[i]];                 
+            if (!checkarray(new_keys[i], KB[port].raw[i - 2], 6)) {                                      //If the new raw code doesn't feature in the array of old raw codes
+                KB[port].key[i - 2] = keys_upper[new_keys[i]];                                           //then this has been pressed and released, store the ASCII equivalent.
+                KB[port].pending = true;
+            }
         } else {
-            if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_lower[new_keys[i]];
+            //if (!checkarray(new_keys[i], last_ingest, 8)) KB[port].key = keys_lower[new_keys[i]];
+            if (!checkarray(new_keys[i], KB[port].raw[i - 2], 6)) {
+                KB[port].key[i - 2] = keys_lower[new_keys[i]];
+                KB[port].pending = true;
+            }
         }
+        KB[port].raw[i - 2] = new_keys[i];  //Store the raw USB keycodes (to allow processing non-ascii keys like arrows etc.) and for comparison against next loop.
     }
     //printf("%c registered\n", KB[port].key);
-    KB[port].pending = true;
-    memcpy(last_ingest, new_keys, 8);
+    //memcpy(last_ingest, new_keys, 8);
 
 }
 
@@ -424,13 +434,46 @@ int kb_pending() {
 }
 
 char read_key(State *state) {
+    
     while (kb_pending() == -1) {
         process_incoming(state);
     }
     uint8_t kb = kb_pending();
     KB[kb].pending = false;
-    char ret_key = KB[kb].key;
-    KB[kb].key = 0x00;
+    char ret_key = KB[kb].key[0];
+    KB[kb].key[0] = 0x00;
+    return ret_key;
+
+}
+
+char * read_keys(State *state) {
+
+    while (kb_pending() == -1) {
+        process_incoming(state);
+    }
+    uint8_t kb = kb_pending();
+    KB[kb].pending = false;
+    
+    char ret_keys[6];
+
+    for (int i = 0; i < 6; i++) {
+        if (KB[kb].key[i]) ret_keys[i] = KB[kb].key[i];
+    }
+    
+    //KB[kb].key = 0x00;
+    return ret_keys;
+
+}
+
+int read_raw(State *state) {
+
+    while (kb_pending() == -1) {
+        process_incoming(state);
+    }
+    uint8_t kb = kb_pending();
+    KB[kb].pending = false;
+    char ret_key = KB[kb].raw[0];
+    KB[kb].raw[0] = 0x00;
     return ret_key;
 
 }
