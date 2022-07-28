@@ -447,28 +447,6 @@ char read_key(State *state) {
 
 }
 
-char * read_keys(State *state) {
-
-    while (kb_pending() == -1) {
-        process_incoming(state);
-    }
-    uint8_t kb = kb_pending();
-    KB[kb].pending = false;
-    
-    char ret_keys[6];
-
-    for (int i = 0; i < 6; i++) {
-        if (KB[kb].key[i]) {
-            ret_keys[i] = KB[kb].key[i];
-            KB[kb].key[i] = 0x00;
-        }
-    }
-    
-    //KB[kb].key = 0x00;
-    return ret_keys;
-
-}
-
 int read_raw(State *state) {
 
     while (kb_pending() == -1) {
