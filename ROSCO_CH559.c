@@ -111,9 +111,7 @@ void process_strikes(uint8_t* new_keys, uint8_t port) {
 
 void remap_into_dpad(uint8_t port, uint8_t map, uint8_t from, uint8_t to) {
 
-    if (isSet(map, from)) {
-        PAD[port].buttons.dpad |= (1 << to);
-    }
+    if (isSet(map, from)) PAD[port].buttons.dpad |= (1 << to);
 
 }
 
