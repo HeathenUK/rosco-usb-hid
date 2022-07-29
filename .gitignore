@@ -1,0 +1,10 @@
+.vscode
+*.raw
+*.o
+*.log
+*.lst
+*.bin
+*.dis
+*.elf
+*.map
+*.sym
