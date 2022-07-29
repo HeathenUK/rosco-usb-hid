@@ -20,6 +20,8 @@ VECADDR         equ     $45<<2
 
 ; C callable - void install_interrupt(CHAR_DEVICE *device, RingBuffer *uart_a, RingBuffer *uart_b)
 ;
+; If you don't want to install for both UARTs, pass NULL for either RingBuffer pointer.
+;
 install_interrupt::
         movem.l A0-A1/D0,-(A7)
 
@@ -30,10 +32,8 @@ install_interrupt::
         move.l  (A0),A0                         ; Get base address
 
         move.l  20(A7),A1                       ; Get RingBuffer A pointer
-        move.l  A1,RINGBUF_A                    ; Dereference and store it
-
-        move.l  24(A7),A1                       ; Get RingBuffer B pointer
-        move.l  A1,RINGBUF_B                    ; Dereference and store it
+        move.l  A1,RINGBUF_A                    ; Store it
+        beq.s   .uartb                          ; Skip setup if it's NULL
 
         ; Ensure UART A is set up just like we like it...
         move.b  #$88,DUART_CSRA(A0)             ; 115K2
@@ -41,12 +41,18 @@ install_interrupt::
         move.b  #$13,DUART_MRA(A0)              ; Ensure No RTS, RxRDY, Char, No parity, 8 bits
         move.b  #$07,DUART_MRA(A0)              ; (Normal, No TX CTS/RTS, 1 stop bit)
 
+.uartb
+        move.l  24(A7),A1                       ; Get RingBuffer B pointer
+        move.l  A1,RINGBUF_B                    ; Dereference and store it
+        beq.s   .done                           ; Skip setup if it's NULL
+
         ; Ensure UART B is set up just like we like it...
         move.b  #$88,DUART_CSRB(A0)             ; 115K2
         move.b  #$10,DUART_CRB(A0)              ; Reset to MR1B
         move.b  #$13,DUART_MRB(A0)              ; Ensure No RTS, RxRDY, Char, No parity, 8 bits
         move.b  #$07,DUART_MRB(A0)              ; (Normal, No TX CTS/RTS, 1 stop bit)
 
+.done
         move.l  A0,BASEADDR                     ; Store BASEADDR base pointer
         move.l  VECADDR,CHAIN                   ; Store existing handler
         move.l  #HANDLER,VECADDR                ; And install new one
@@ -96,7 +102,7 @@ HANDLER:
         bsr.s   .error                          ; ... else branch error subroutine
 
 .contA
-        move.b  DUART_RBA(A0),D0                ; Grab character from B receive buffer
+        move.b  DUART_RBA(A0),D0                ; Grab character from A receive buffer
         jsr     (A1)                            ; Call buffer_char
 
         bra.s   .loopA                          ; And continue testing...
