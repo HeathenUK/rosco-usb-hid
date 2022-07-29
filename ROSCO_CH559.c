@@ -392,7 +392,7 @@ void process_incoming(State *state) {
     #endif
     #endif
 
-        uint16_t count = unbuffer(buffer);      //Pull the ring buffer
+        uint16_t count = unbuffer(state->ringBuffer, buffer);      //Pull the ring buffer
         if (count == 0) return;
 
     #ifdef DEBUG_PACKETS

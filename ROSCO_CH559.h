@@ -63,10 +63,18 @@ typedef struct  {
 } BUTTONS;
 
 typedef struct {
-    STATE   state;
-    uint8_t packet[2048];           // I don't know how big this needs to be - size of biggest packet
-    uint16_t packet_ptr;            // If packet array gets bigger, this needs more bits too...
-    uint16_t remain_len;            // Fill length remaining (only valid in STATE_FILL_DATA)
+    uint16_t    r_ptr;
+    uint16_t    w_ptr;
+    uint16_t    mask;
+    uint8_t     data[1024];
+} RingBuffer;
+
+typedef struct {
+    STATE       state;
+    uint8_t     packet[2048];          // I don't know how big this needs to be - size of biggest packet
+    uint16_t    packet_ptr;            // If packet array gets bigger, this needs more bits too...
+    uint16_t    remain_len;            // Fill length remaining (only valid in STATE_FILL_DATA)
+    RingBuffer  *ringBuffer;           // Ringbuffer in use 
 } State;
 
 typedef struct {
@@ -85,9 +93,9 @@ typedef struct {
 
 } __attribute__((packed)) FinalPacket;
 
-extern void install_interrupt(CharDevice *device);
+extern void install_interrupt(CharDevice *device, RingBuffer *uart_a, RingBuffer *uart_b);
 extern void remove_interrupt();
-extern uint16_t unbuffer(unsigned char *buffer);
+extern uint16_t unbuffer(RingBuffer *rb, unsigned char *buffer);
 
 struct KEYB{
     bool pending;
