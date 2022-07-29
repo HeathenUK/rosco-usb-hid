@@ -24,16 +24,16 @@ install_interrupt::
         movem.l A0-A1/D0,-(A7)
 
         move.w  SR,D0                           ; Save SR
-        and.w   #$F0FF,SR                       ; No interrupts for a bit
+        or.w    #$0700,SR                       ; No interrupts for a bit
 
         move.l  16(A7),A0                       ; Get BASEADDR structure
         move.l  (A0),A0                         ; Get base address
 
         move.l  20(A7),A1                       ; Get RingBuffer A pointer
-        move.l  (A1),RINGBUF_A                  ; Dereference and store it
+        move.l  A1,RINGBUF_A                    ; Dereference and store it
 
         move.l  24(A7),A1                       ; Get RingBuffer B pointer
-        move.l  (A1),RINGBUF_B                  ; Dereference and store it
+        move.l  A1,RINGBUF_B                    ; Dereference and store it
 
         ; Ensure UART A is set up just like we like it...
         move.b  #$88,DUART_CSRA(A0)             ; 115K2
@@ -64,7 +64,7 @@ remove_interrupt::
         movem.l D0/A0-A1,-(A7)
 
         move.w  SR,D0                           ; Save SR
-        and.w   #$F0FF,SR                       ; No interrupts for a bit
+        or.w    #$0700,SR                       ; No interrupts for a bit
 
         move.l  CHAIN,VECADDR                   ; Restore original handler
         move.l  BASEADDR,A0                     ; Get BASEADDR structure
@@ -81,6 +81,8 @@ HANDLER:
         move.l  BASEADDR,A0                     ; Load BASEADDR pointer
         move.l  #buffer_char,A1                 ; Buffer routine in A1
         move.l  RINGBUF_A,A2                    ; UART A RingBuffer in A2
+        cmp.l   #0,A2                           ; Is the pointer NULL?
+        beq.s   .duartB                         ; Skip to DUART B if so...
 
 ;; UART A
 .loopA
@@ -142,6 +144,8 @@ HANDLER:
 ;; UART B
 .uartB
         move.l  RINGBUF_B,A2                    ; UART B RingBuffer in A2
+        cmp.l   #0,A2                           ; Is the pointer NULL?
+        beq.s   .chain                          ; Skip to chained handler if so...
 
 .loopB
         move.b  DUART_ISR(A0),D0
@@ -171,3 +175,4 @@ RINGBUF_A   dc.l        0                       ; Ringbuffer for UART A
 RINGBUF_B   dc.l        0                       ; Ringbuffer for UART B
 BASEADDR    dc.l        0                       ; DUART base address from CHAR_DEVICE struct     
 CHAIN       dc.l        0                       ; Chained ISR (timer tick probably)
+

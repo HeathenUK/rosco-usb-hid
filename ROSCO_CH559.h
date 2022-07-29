@@ -93,6 +93,11 @@ typedef struct {
 
 } __attribute__((packed)) FinalPacket;
 
+/**
+ * Install interrupt handler.
+ *
+ * If you don't want to install for both UARTs, pass NULL for either RingBuffer pointer.
+ */
 extern void install_interrupt(CharDevice *device, RingBuffer *uart_a, RingBuffer *uart_b);
 extern void remove_interrupt();
 extern uint16_t unbuffer(RingBuffer *rb, unsigned char *buffer);

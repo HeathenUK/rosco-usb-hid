@@ -11,8 +11,7 @@
 ;
 buffer_char::
         movem.l A0/D1-D2,-(A7)                  ; Stash regs
-        move.l  A0,-(A7)
-        move.l  6(A2),A0                        ; Point A0 to the data buffer
+        lea.l   6(A2),A0                        ; Point A0 to the data buffer
         move.w  2(A2),D1                        ; Get the current write pointer into D1
         move.w  4(A2),D2                        ; Get mask into D2
         move.b  D0,(A0,D1)                      ; Buffer the character
@@ -30,13 +29,12 @@ buffer_char::
 unbuffer::
         movem.l D1-D4/A0-A1,-(A7)
         move.w  SR,D4                           ; Save SR
-        and.w   #$F0FF,SR                       ; No interrupts for a bit
+        or.w    #$0700,SR                       ; No interrupts for a bit
 
         move.l  28(A7),A0                       ; Load internal buffer into A0
         move.l  32(A7),A1                       ; Load out buffer into A1
         clr.l   D0                              ; Zero return value
 
-        move.l  (A0),A0                         ; Dereference passed RingBuffer pointer
         move.w  (A0)+,D1                        ; D1 is R pointer
         move.w  (A0)+,D2                        ; D2 is W pointer
         move.w  (A0)+,D3                        ; D3 is mask
@@ -53,7 +51,6 @@ unbuffer::
 
 .done:
         move.l  28(A7),A0                       ; Re-fetch RingBuffer pointer
-        move.l  (A0),A0                         ; Dereference it
         move.w  D1,(A0)                         ; Store updated read pointer
         move.w  D4,SR                           ; Re-enable interrupts
         movem.l (A7)+,D1-D4/A0-A1
