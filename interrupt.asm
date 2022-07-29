@@ -82,7 +82,7 @@ HANDLER:
         move.l  #buffer_char,A1                 ; Buffer routine in A1
         move.l  RINGBUF_A,A2                    ; UART A RingBuffer in A2
         cmp.l   #0,A2                           ; Is the pointer NULL?
-        beq.s   .duartB                         ; Skip to DUART B if so...
+        beq.s   .uartB                          ; Skip to DUART B if so...
 
 ;; UART A
 .loopA
